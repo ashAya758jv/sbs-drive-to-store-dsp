@@ -35,8 +35,9 @@ export default function Select({
           value={value}
           onChange={onChange}
           className={cn(
-            "w-full appearance-none rounded-lg border border-slate-200 bg-white",
+            "w-full cursor-pointer appearance-none rounded-lg border border-slate-200 bg-white transition-colors",
             "py-2 pl-3 pr-9 text-sm text-slate-700 shadow-sm",
+            "hover:border-slate-300",
             "focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-500/30",
             selectClassName,
           )}

@@ -2,11 +2,11 @@ import { cn } from "../../lib/cn";
 
 const variants = {
   primary:
-    "bg-primary-600 text-white hover:bg-primary-700 shadow-sm shadow-primary-600/25",
+    "bg-primary-600 text-white hover:bg-primary-700 active:bg-primary-800 shadow-sm shadow-primary-600/25",
   secondary:
-    "bg-white text-slate-700 border border-slate-200 hover:bg-slate-50",
-  ghost: "text-slate-600 hover:bg-slate-100",
-  danger: "bg-rose-600 text-white hover:bg-rose-700",
+    "bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 active:bg-slate-100",
+  ghost: "text-slate-600 hover:bg-slate-100 active:bg-slate-200",
+  danger: "bg-rose-600 text-white hover:bg-rose-700 active:bg-rose-800",
 };
 
 const sizes = {
@@ -29,7 +29,7 @@ export default function Button({
   return (
     <button
       className={cn(
-        "inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-colors",
+        "inline-flex items-center justify-center gap-2 rounded-lg font-medium transition active:scale-[0.98]",
         "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40",
         "disabled:pointer-events-none disabled:opacity-50",
         variants[variant],

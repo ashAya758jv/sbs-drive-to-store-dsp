@@ -15,7 +15,7 @@ export default function Header() {
   const [advertiser, setAdvertiser] = useState(advertisers[0]);
 
   return (
-    <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-slate-200/70 bg-white/80 px-6 backdrop-blur">
+    <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-slate-200/70 bg-white/80 px-6 backdrop-blur lg:px-8">
       {/* Brand */}
       <div className="flex items-center gap-3">
         <h1 className="text-lg font-semibold text-slate-900">SBS Data Factory</h1>
@@ -39,7 +39,7 @@ export default function Header() {
         <button
           type="button"
           aria-label="Notifications"
-          className="relative grid h-10 w-10 place-items-center rounded-full text-slate-500 transition-colors hover:bg-slate-100"
+          className="relative grid h-10 w-10 place-items-center rounded-full text-slate-500 transition-colors hover:bg-slate-100 active:bg-slate-200"
         >
           <Bell className="h-5 w-5" />
           <span className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-rose-500 ring-2 ring-white" />

@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { ArrowUpRight, ArrowDownRight } from "lucide-react";
 import PageHeader from "../components/layout/PageHeader";
 import Card from "../components/ui/Card";
@@ -68,6 +69,11 @@ export default function Dashboard() {
   const [status, setStatus] = useState(statusFilterOptions[0]);
   const [period, setPeriod] = useState(periodFilterOptions[1]); // 30 derniers jours
 
+  const filteredCampaigns = useMemo(() => {
+    if (status === statusFilterOptions[0]) return recentCampaigns;
+    return recentCampaigns.filter((campaign) => campaign.status === status);
+  }, [status]);
+
   return (
     <>
       <PageHeader
@@ -131,12 +137,12 @@ export default function Dashboard() {
               Les dernières campagnes drive-to-store
             </p>
           </div>
-          <button
-            type="button"
-            className="text-sm font-medium text-primary-700 transition-colors hover:text-primary-800"
+          <Link
+            to="/reporting"
+            className="text-sm font-medium text-primary-700 transition-colors hover:text-primary-800 active:text-primary-900"
           >
             Voir tout
-          </button>
+          </Link>
         </div>
 
         <div className="overflow-x-auto">
@@ -157,34 +163,45 @@ export default function Dashboard() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {recentCampaigns.map((campaign) => (
-                <tr
-                  key={campaign.id}
-                  className="transition-colors hover:bg-lavender-50"
-                >
-                  <td className="px-5 py-4 font-medium text-slate-800">
-                    {campaign.name}
-                  </td>
-                  <td className="px-5 py-4">
-                    <Badge variant={statusVariants[campaign.status]} dot>
-                      {campaign.status}
-                    </Badge>
-                  </td>
-                  <td className="px-5 py-4 text-slate-500">{campaign.period}</td>
-                  <td className="px-5 py-4 text-right text-slate-600">
-                    {campaign.budget}
-                  </td>
-                  <td className="px-5 py-4 text-right text-slate-600">
-                    {campaign.spent}
-                  </td>
-                  <td className="px-5 py-4 text-right text-slate-600">
-                    {campaign.impressions}
-                  </td>
-                  <td className="px-5 py-4 text-right text-slate-600">
-                    {campaign.clics}
+              {filteredCampaigns.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={tableHeadings.length}
+                    className="px-5 py-10 text-center text-sm text-slate-400"
+                  >
+                    Aucune campagne ne correspond à ce filtre.
                   </td>
                 </tr>
-              ))}
+              ) : (
+                filteredCampaigns.map((campaign) => (
+                  <tr
+                    key={campaign.id}
+                    className="transition-colors hover:bg-lavender-50"
+                  >
+                    <td className="px-5 py-4 font-medium text-slate-800">
+                      {campaign.name}
+                    </td>
+                    <td className="px-5 py-4">
+                      <Badge variant={statusVariants[campaign.status]} dot>
+                        {campaign.status}
+                      </Badge>
+                    </td>
+                    <td className="px-5 py-4 text-slate-500">{campaign.period}</td>
+                    <td className="px-5 py-4 text-right text-slate-600">
+                      {campaign.budget}
+                    </td>
+                    <td className="px-5 py-4 text-right text-slate-600">
+                      {campaign.spent}
+                    </td>
+                    <td className="px-5 py-4 text-right text-slate-600">
+                      {campaign.impressions}
+                    </td>
+                    <td className="px-5 py-4 text-right text-slate-600">
+                      {campaign.clics}
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

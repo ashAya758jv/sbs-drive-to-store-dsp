@@ -16,7 +16,7 @@ export default function Breadcrumb({ items = [] }) {
     >
       <Link
         to="/dashboard"
-        className="flex items-center gap-1 transition-colors hover:text-primary-700"
+        className="flex items-center gap-1 transition-colors hover:text-primary-700 active:text-primary-800"
       >
         <Home className="h-3.5 w-3.5" />
         Accueil
@@ -30,12 +30,14 @@ export default function Breadcrumb({ items = [] }) {
             {item.to && !isLast ? (
               <Link
                 to={item.to}
-                className="transition-colors hover:text-primary-700"
+                className="transition-colors hover:text-primary-700 active:text-primary-800"
               >
                 {item.label}
               </Link>
-            ) : (
+            ) : isLast ? (
               <span className="font-medium text-slate-700">{item.label}</span>
+            ) : (
+              <span className="text-slate-500">{item.label}</span>
             )}
           </span>
         );

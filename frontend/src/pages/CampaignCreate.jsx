@@ -5,7 +5,7 @@ export default function CampaignCreate() {
   return (
     <PlaceholderPage
       breadcrumb={[
-        { label: "Campagnes", to: "/campagnes" },
+        { label: "Campagnes" },
         { label: "Créer une campagne" },
       ]}
       title="Création de campagne"
