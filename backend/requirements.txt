@@ -1,0 +1,9 @@
+# SBS Data Factory — Drive-to-Store DSP · Backend dependencies
+# Python 3.10+ required.
+
+fastapi>=0.115,<1.0
+uvicorn[standard]>=0.30
+pydantic[email]>=2.7
+pydantic-settings>=2.3
+SQLAlchemy>=2.0,<3.0
+psycopg2-binary>=2.9        # PostgreSQL driver (used once the DB is wired)
