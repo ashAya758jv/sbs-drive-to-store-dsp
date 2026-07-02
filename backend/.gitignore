@@ -13,3 +13,8 @@ env/
 
 # Environment files
 .env
+
+# Local dev database (SQLite fallback for the campaign-creation flow)
+.local/
+*.db
+*.sqlite3

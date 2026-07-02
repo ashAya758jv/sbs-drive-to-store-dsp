@@ -5,3 +5,8 @@ dist/
 __pycache__/
 *.pyc
 .DS_Store
+
+# Local dev database (SQLite fallback, never committed)
+*.db
+*.sqlite3
+.local/
