@@ -4,6 +4,7 @@ import { ROLES } from "../data/mockData";
 import AppLayout from "../components/layout/AppLayout";
 import Login from "../pages/Login";
 import Dashboard from "../pages/Dashboard";
+import Campaigns from "../pages/Campaigns";
 import CampaignCreate from "../pages/CampaignCreate";
 import StoreSelection from "../pages/StoreSelection";
 import DCO from "../pages/DCO";
@@ -48,6 +49,14 @@ export default function AppRouter() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route
           path="/campagnes"
+          element={
+            <RequireRole roles={[ROLES.ADMIN, ROLES.MEDIA_BUYER]}>
+              <Campaigns />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="/campagnes/nouvelle"
           element={
             <RequireRole roles={[ROLES.ADMIN, ROLES.MEDIA_BUYER]}>
               <CampaignCreate />
