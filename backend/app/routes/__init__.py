@@ -11,6 +11,7 @@ from app.routes import (
     campaigns,
     health,
     statistics,
+    store_import,
     stores,
     users,
 )
@@ -20,6 +21,7 @@ api_router.include_router(health.router)
 api_router.include_router(users.router)
 api_router.include_router(advertisers.router)
 api_router.include_router(stores.router)
+api_router.include_router(store_import.router)
 api_router.include_router(campaigns.router)
 api_router.include_router(campaign_creation.router)
 api_router.include_router(statistics.router)

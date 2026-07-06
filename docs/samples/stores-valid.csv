@@ -1,0 +1,4 @@
+store_id,name,city,address,latitude,longitude,opening_hours,store_url
+M001,Marjane Californie,Casablanca,Bd Panoramique Californie,33.5298,-7.6512,09:00 - 22:00,https://www.marjane.ma/californie
+M002,Marjane Hay Riad,Rabat,Avenue Annakhil Hay Riad,33.9560,-6.8670,09:00 - 22:00,https://www.marjane.ma/hay-riad
+M003,Carrefour Anfa Place,Casablanca,Anfa Place Bd de la Corniche,33.6020,-7.6700,09:00 - 23:00,https://www.carrefour.ma/anfa-place

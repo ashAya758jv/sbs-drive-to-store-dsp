@@ -12,15 +12,20 @@ export default function Checkbox({
   label,
   description,
   className,
+  disabled = false,
 }) {
   return (
     <label
       className={cn(
-        "flex cursor-pointer items-start gap-3 rounded-xl border p-3 transition-colors",
-        "focus-within:ring-2 focus-within:ring-primary-500/30",
-        checked
-          ? "border-primary-300 bg-primary-50/60 ring-1 ring-primary-500/20"
-          : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50",
+        "flex items-start gap-3 rounded-xl border p-3 transition-colors",
+        disabled
+          ? "cursor-not-allowed border-slate-200 bg-slate-50 opacity-60"
+          : cn(
+              "cursor-pointer focus-within:ring-2 focus-within:ring-primary-500/30",
+              checked
+                ? "border-primary-300 bg-primary-50/60 ring-1 ring-primary-500/20"
+                : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50",
+            ),
         className,
       )}
     >
@@ -39,6 +44,7 @@ export default function Checkbox({
         className="sr-only"
         checked={checked}
         onChange={onChange}
+        disabled={disabled}
       />
       <span className="min-w-0">
         <span className="block text-sm font-medium text-slate-800">{label}</span>

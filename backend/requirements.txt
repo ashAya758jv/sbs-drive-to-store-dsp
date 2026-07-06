@@ -7,3 +7,5 @@ pydantic[email]>=2.7
 pydantic-settings>=2.3
 SQLAlchemy>=2.0,<3.0
 psycopg2-binary>=2.9        # PostgreSQL driver (used once the DB is wired)
+python-multipart>=0.0.9     # multipart/form-data parsing (file uploads)
+openpyxl>=3.1               # .xlsx reading for the client store import
