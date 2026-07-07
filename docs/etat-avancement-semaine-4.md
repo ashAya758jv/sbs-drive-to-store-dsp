@@ -211,3 +211,79 @@ dupliqué. Aucun changement backend n'a été nécessaire.
 - Pas encore de clustering de marqueurs : au-delà de quelques dizaines de
   magasins très proches, l'affichage individuel restera lisible mais pourra
   être densifié (amélioration future si le volume de magasins augmente).
+
+---
+
+## Jour 3 — Sélection des magasins
+
+### Objectif
+
+Permettre de **sélectionner** les magasins valides à retenir, depuis la liste
+**et** depuis la carte, avec un filtre par ville et des raccourcis.
+
+### Fonctionnalités réalisées
+
+- **Case à cocher par ligne** dans le tableau des magasins valides.
+- Sélection/désélection **depuis la carte** : clic sur un marqueur, ou case à
+  cocher dans le popup. Les marqueurs sélectionnés sont visuellement distincts
+  (plus grands, halo violet + coche).
+- **Synchronisation bidirectionnelle** liste ↔ carte en temps réel (état
+  `selectedIds` porté par la page `StoreSelection.jsx`, partagé avec `StoreMap`).
+- Boutons **« Tout sélectionner »** / **« Tout désélectionner »** (agissant sur
+  les magasins visibles selon le filtre actif).
+- **Filtre par ville** qui restreint simultanément le tableau et la carte
+  (recentrage automatique).
+- **Compteur** : « X magasin(s) sélectionné(s) / Y magasin(s) disponible(s) ».
+
+### État actuel et limites
+
+- La sélection est un **état frontend** (non persistée) — cohérent avec le fait
+  que l'import n'est pas encore écrit en base.
+
+---
+
+## Jour 4 — Rayon de ciblage (geofencing visuel)
+
+### Objectif
+
+Associer à chaque magasin **sélectionné** un **rayon de ciblage réglable**, et
+le matérialiser par un **cercle de geofencing** sur la carte, synchronisé en
+temps réel.
+
+### Fonctionnalités réalisées
+
+- Nouvelle section **« Rayons de ciblage (geofencing) »** dans
+  `StoreSelection.jsx`, listant chaque magasin sélectionné avec : **nom**,
+  **ville**, **rayon actuel en km**, et un **slider de 1 à 20 km**.
+- **Rayon par défaut : 5 km** lorsqu'un magasin vient d'être sélectionné.
+- Mise à jour **immédiate** au déplacement du slider (valeur affichée + cercle).
+- Sur la carte (`StoreMap.jsx`), un **cercle violet** est dessiné autour de
+  chaque magasin sélectionné, dans une **couche dédiée** sous les marqueurs
+  (cercles `interactive: false` pour ne jamais bloquer le clic sur un marqueur).
+- **Synchronisation temps réel** : le cercle grandit/réduit avec le slider
+  (réconciliation en place via `circle.setRadius`, sans reconstruire les
+  marqueurs — les popups ouverts restent ouverts) ; désélectionner un magasin
+  **retire** son cercle ; le re-sélectionner **restaure le rayon déjà choisi**
+  (sinon 5 km par défaut) — le rayon est mémorisé par `store_id` (état `radii`).
+- Les **marqueurs restent visibles** ; le **filtre ville** et la
+  **sélection liste/carte** du Jour 3 sont conservés.
+- **Compteur** dans l'en-tête de la section : nombre de magasins sélectionnés +
+  **rayon moyen** (km) des magasins sélectionnés.
+
+### Choix technique
+
+- Réalisé avec **Leaflet natif** (`L.circle`), en cohérence avec les Jours 2/3
+  (pas d'ajout de `react-leaflet`, aucune nouvelle dépendance).
+- Correctif au passage : la vue de la carte (`fitBounds`) est désormais
+  calculée **après** `invalidateSize()`, ce qui évite un cas où la projection
+  Leaflet plaçait marqueurs et cercles hors du cadre visible quand le conteneur
+  n'avait pas encore sa taille réelle.
+
+### État actuel et limites
+
+- **Jour 4 terminé** côté visuel/interactif. Le rayon reste un **état frontend**
+  (non persisté, pas encore envoyé au backend) : le ciblage géographique réel
+  (association campagne ↔ magasins ↔ rayon) sera branché lors de l'étape de
+  persistance.
+- Le cercle est un rayon **circulaire simple** (pas de zones/polygones
+  personnalisés).

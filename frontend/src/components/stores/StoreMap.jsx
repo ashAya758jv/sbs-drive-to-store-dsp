@@ -113,10 +113,18 @@ function isFiniteCoord(value) {
  * the checkbox inside the popup) — kept in sync with the table via the
  * `selectedIds` / `onToggleSelect` props owned by the parent page.
  */
-export default function StoreMap({ stores = [], selectedIds, onToggleSelect }) {
+export default function StoreMap({
+  stores = [],
+  selectedIds,
+  onToggleSelect,
+  radii,
+  defaultRadiusKm = 5,
+}) {
   const containerRef = useRef(null);
   const mapRef = useRef(null);
   const markersLayerRef = useRef(null);
+  const circlesLayerRef = useRef(null);
+  const circlesRef = useRef(new Map());
   const reopenPopupForRef = useRef(null);
 
   const validStores = useMemo(
@@ -137,30 +145,43 @@ export default function StoreMap({ stores = [], selectedIds, onToggleSelect }) {
 
     const map = L.map(containerRef.current, { scrollWheelZoom: true });
     mapRef.current = map;
+    const circles = circlesRef.current; // stable Map, captured for cleanup
 
     L.tileLayer(OSM_TILE_URL, {
       attribution: OSM_ATTRIBUTION,
       maxZoom: 19,
     }).addTo(map);
 
+    // Circles first so the markers layer stays on top and clickable.
+    circlesLayerRef.current = L.layerGroup().addTo(map);
     markersLayerRef.current = L.layerGroup().addTo(map);
 
-    if (validStores.length === 1) {
-      map.setView([validStores[0].latitude, validStores[0].longitude], 14);
-    } else {
-      map.fitBounds(
-        L.latLngBounds(validStores.map((s) => [s.latitude, s.longitude])),
-        { padding: [32, 32] },
-      );
-    }
+    const fitToStores = () => {
+      if (validStores.length === 1) {
+        map.setView([validStores[0].latitude, validStores[0].longitude], 14);
+      } else {
+        map.fitBounds(
+          L.latLngBounds(validStores.map((s) => [s.latitude, s.longitude])),
+          { padding: [32, 32] },
+        );
+      }
+    };
 
-    const raf = requestAnimationFrame(() => map.invalidateSize());
+    // Size the container first, then compute the view — running fitBounds
+    // before the container has its real size can break Leaflet's projection
+    // (markers/circles land far outside the visible map).
+    const raf = requestAnimationFrame(() => {
+      map.invalidateSize();
+      fitToStores();
+    });
 
     return () => {
       cancelAnimationFrame(raf);
       map.remove();
       mapRef.current = null;
       markersLayerRef.current = null;
+      circlesLayerRef.current = null;
+      circles.clear();
     };
   }, [validStores]);
 
@@ -195,6 +216,49 @@ export default function StoreMap({ stores = [], selectedIds, onToggleSelect }) {
       reopenPopupForRef.current = null;
     }
   }, [validStores, selectedIds, onToggleSelect]);
+
+  // Effect 3 — geofencing circles around each selected store, reconciled in
+  // place so dragging the radius slider resizes the circle in real time
+  // without rebuilding the markers (which would close any open popup).
+  useEffect(() => {
+    const layer = circlesLayerRef.current;
+    if (!layer) return;
+    const circles = circlesRef.current;
+    const stillSelected = new Set();
+
+    validStores.forEach((store) => {
+      const selected = selectedIds?.has(store.store_id) ?? false;
+      if (!selected) return;
+      stillSelected.add(store.store_id);
+      const km = radii?.[store.store_id] ?? defaultRadiusKm;
+      const meters = (km || defaultRadiusKm) * 1000;
+      const existing = circles.get(store.store_id);
+      if (existing) {
+        existing.setLatLng([store.latitude, store.longitude]);
+        existing.setRadius(meters);
+      } else {
+        const circle = L.circle([store.latitude, store.longitude], {
+          radius: meters,
+          interactive: false, // never intercept marker clicks
+          color: brand.primary,
+          weight: 2,
+          opacity: 0.7,
+          fillColor: brand.primary,
+          fillOpacity: 0.12,
+        });
+        circle.addTo(layer);
+        circles.set(store.store_id, circle);
+      }
+    });
+
+    // Drop circles for stores no longer selected / no longer visible.
+    circles.forEach((circle, id) => {
+      if (!stillSelected.has(id)) {
+        layer.removeLayer(circle);
+        circles.delete(id);
+      }
+    });
+  }, [validStores, selectedIds, radii, defaultRadiusKm]);
 
   const selectedCount =
     selectedIds && validStores.length > 0
@@ -245,7 +309,8 @@ export default function StoreMap({ stores = [], selectedIds, onToggleSelect }) {
           />
           <p className="mt-3 text-xs text-slate-400">
             Cliquez sur un marqueur (ou sur la case dans son popup) pour
-            sélectionner/désélectionner un magasin.
+            sélectionner/désélectionner un magasin. Le cercle violet représente
+            le rayon de ciblage réglé pour chaque magasin sélectionné.
           </p>
         </>
       )}

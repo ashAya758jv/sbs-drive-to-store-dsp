@@ -16,6 +16,9 @@ import { EXPECTED_COLUMNS, previewStoreImport } from "../data/storesApi";
 import StoreMap from "../components/stores/StoreMap";
 import { cn } from "../lib/cn";
 
+/** Default geofencing radius (km) applied to a store when it is first selected. */
+const DEFAULT_RADIUS_KM = 5;
+
 /* Small stat tile shown in the analysis summary. */
 function StatTile({ label, value, tone }) {
   const tones = {
@@ -40,6 +43,9 @@ export default function StoreSelection() {
   const [apiError, setApiError] = useState(null);
   const [selectedIds, setSelectedIds] = useState(() => new Set());
   const [cityFilter, setCityFilter] = useState("");
+  // Per-store geofencing radius (km), keyed by store_id. Persists across
+  // deselect/reselect so a re-selected store keeps its previously chosen radius.
+  const [radii, setRadii] = useState({});
 
   const handleFileChange = (event) => {
     setFile(event.target.files?.[0] ?? null);
@@ -47,6 +53,7 @@ export default function StoreSelection() {
     setApiError(null);
     setSelectedIds(new Set());
     setCityFilter("");
+    setRadii({});
   };
 
   const handleAnalyze = async () => {
@@ -55,6 +62,7 @@ export default function StoreSelection() {
     setApiError(null);
     setSelectedIds(new Set());
     setCityFilter("");
+    setRadii({});
     try {
       setPreview(await previewStoreImport(file));
     } catch (err) {
@@ -117,6 +125,34 @@ export default function StoreSelection() {
       return next;
     });
   };
+
+  /** Effective radius of a store (chosen value, else the default). */
+  const radiusOf = useCallback(
+    (storeId) => radii[storeId] ?? DEFAULT_RADIUS_KM,
+    [radii],
+  );
+
+  /** Update one store's geofencing radius (live, from its slider). */
+  const handleRadiusChange = (storeId, km) => {
+    setRadii((prev) => ({ ...prev, [storeId]: km }));
+  };
+
+  /** Selected stores (all of them, independent of the city filter), for the
+   *  radius configuration section. */
+  const selectedStores = useMemo(
+    () => (preview?.stores ?? []).filter((store) => selectedIds.has(store.store_id)),
+    [preview, selectedIds],
+  );
+
+  /** Average configured radius across the selected stores (for the counter). */
+  const averageRadius = useMemo(() => {
+    if (selectedStores.length === 0) return 0;
+    const total = selectedStores.reduce(
+      (sum, store) => sum + (radii[store.store_id] ?? DEFAULT_RADIUS_KM),
+      0,
+    );
+    return Math.round((total / selectedStores.length) * 10) / 10;
+  }, [selectedStores, radii]);
 
   return (
     <>
@@ -433,12 +469,75 @@ export default function StoreSelection() {
             </Card>
           )}
 
+          {/* Geofencing radius per selected store */}
+          {selectedStores.length > 0 && (
+            <Card className="mt-6">
+              <div className="flex flex-col gap-3 border-b border-slate-100 p-5 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h3 className="text-sm font-semibold text-slate-900">
+                    Rayons de ciblage (geofencing)
+                  </h3>
+                  <p className="mt-0.5 text-xs text-slate-400">
+                    Ajustez le rayon de diffusion autour de chaque magasin
+                    sélectionné (1 à 20 km). Le cercle correspondant s'affiche sur
+                    la carte.
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant="success">
+                    {selectedStores.length} sélectionné
+                    {selectedStores.length !== 1 ? "s" : ""}
+                  </Badge>
+                  <Badge variant="primary">Rayon moyen : {averageRadius} km</Badge>
+                </div>
+              </div>
+
+              <div className="divide-y divide-slate-50">
+                {selectedStores.map((store) => {
+                  const km = radiusOf(store.store_id);
+                  return (
+                    <div
+                      key={store.store_id}
+                      className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between"
+                    >
+                      <div className="min-w-0 sm:w-1/3">
+                        <p className="truncate text-sm font-medium text-slate-800">
+                          {store.name}
+                        </p>
+                        <p className="text-xs text-slate-400">{store.city}</p>
+                      </div>
+                      <div className="flex flex-1 items-center gap-4">
+                        <input
+                          type="range"
+                          min="1"
+                          max="20"
+                          step="1"
+                          value={km}
+                          aria-label={`Rayon de ciblage pour ${store.name}`}
+                          onChange={(e) =>
+                            handleRadiusChange(store.store_id, Number(e.target.value))
+                          }
+                          className="h-2 w-full cursor-pointer accent-primary-600"
+                        />
+                        <span className="w-14 shrink-0 text-right text-sm font-semibold text-primary-700">
+                          {km} km
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </Card>
+          )}
+
           {/* Interactive map of the valid, imported stores — kept in sync
-              with the table's selection and city filter. */}
+              with the table's selection, city filter and geofencing radii. */}
           <StoreMap
             stores={filteredStores}
             selectedIds={selectedIds}
             onToggleSelect={handleToggleSelect}
+            radii={radii}
+            defaultRadiusKm={DEFAULT_RADIUS_KM}
           />
         </>
       )}
