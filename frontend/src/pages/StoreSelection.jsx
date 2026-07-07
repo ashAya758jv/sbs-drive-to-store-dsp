@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -11,6 +11,7 @@ import PageHeader from "../components/layout/PageHeader";
 import Card from "../components/ui/Card";
 import Button from "../components/ui/Button";
 import Badge from "../components/ui/Badge";
+import Select from "../components/ui/Select";
 import { EXPECTED_COLUMNS, previewStoreImport } from "../data/storesApi";
 import StoreMap from "../components/stores/StoreMap";
 import { cn } from "../lib/cn";
@@ -37,17 +38,23 @@ export default function StoreSelection() {
   const [analyzing, setAnalyzing] = useState(false);
   const [preview, setPreview] = useState(null);
   const [apiError, setApiError] = useState(null);
+  const [selectedIds, setSelectedIds] = useState(() => new Set());
+  const [cityFilter, setCityFilter] = useState("");
 
   const handleFileChange = (event) => {
     setFile(event.target.files?.[0] ?? null);
     setPreview(null);
     setApiError(null);
+    setSelectedIds(new Set());
+    setCityFilter("");
   };
 
   const handleAnalyze = async () => {
     if (!file) return;
     setAnalyzing(true);
     setApiError(null);
+    setSelectedIds(new Set());
+    setCityFilter("");
     try {
       setPreview(await previewStoreImport(file));
     } catch (err) {
@@ -62,6 +69,54 @@ export default function StoreSelection() {
   const hasMissingColumns = preview?.missing_columns?.length > 0;
   const allValid =
     preview && preview.total_rows > 0 && preview.error_count === 0 && !hasMissingColumns;
+
+  /** Cities available in the current import, for the city/region filter. */
+  const cityOptions = useMemo(() => {
+    const cities = new Set(
+      (preview?.stores ?? []).map((store) => store.city).filter(Boolean),
+    );
+    return [
+      { value: "", label: "Toutes les villes" },
+      ...[...cities].sort((a, b) => a.localeCompare(b)).map((city) => ({
+        value: city,
+        label: city,
+      })),
+    ];
+  }, [preview]);
+
+  /** Stores matching the active city filter (drives both the table and the map). */
+  const filteredStores = useMemo(() => {
+    const stores = preview?.stores ?? [];
+    return cityFilter ? stores.filter((store) => store.city === cityFilter) : stores;
+  }, [preview, cityFilter]);
+
+  /** Toggle a single store — called from the table checkbox and from the map. */
+  const handleToggleSelect = useCallback((storeId) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(storeId)) next.delete(storeId);
+      else next.add(storeId);
+      return next;
+    });
+  }, []);
+
+  /** Select every store currently visible under the active city filter. */
+  const handleSelectAll = () => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      filteredStores.forEach((store) => next.add(store.store_id));
+      return next;
+    });
+  };
+
+  /** Deselect every store currently visible under the active city filter. */
+  const handleDeselectAll = () => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      filteredStores.forEach((store) => next.delete(store.store_id));
+      return next;
+    });
+  };
 
   return (
     <>
@@ -255,19 +310,53 @@ export default function StoreSelection() {
           {/* Valid stores */}
           {preview.stores.length > 0 && (
             <Card className="mt-6">
-              <div className="border-b border-slate-100 p-5">
-                <h3 className="text-sm font-semibold text-slate-900">
-                  Magasins valides ({preview.valid_count})
-                </h3>
-                <p className="mt-0.5 text-xs text-slate-400">
-                  Ces magasins sont affichés sur la carte ci-dessous.
-                  L'import définitif en base sera ajouté à une étape ultérieure.
-                </p>
+              <div className="flex flex-col gap-3 border-b border-slate-100 p-5 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h3 className="text-sm font-semibold text-slate-900">
+                    Magasins valides ({preview.valid_count})
+                  </h3>
+                  <p className="mt-0.5 text-xs text-slate-400">
+                    Sélectionnez les magasins à utiliser pour la campagne. Ils
+                    sont aussi affichés sur la carte ci-dessous.
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-end gap-2">
+                  <Select
+                    label="Ville"
+                    value={cityFilter}
+                    onChange={(e) => setCityFilter(e.target.value)}
+                    options={cityOptions}
+                    className="w-44"
+                  />
+                  <Button variant="secondary" size="sm" onClick={handleSelectAll}>
+                    Tout sélectionner
+                  </Button>
+                  <Button variant="secondary" size="sm" onClick={handleDeselectAll}>
+                    Tout désélectionner
+                  </Button>
+                </div>
               </div>
+
+              {/* Selection counter */}
+              <div className="flex items-center gap-2 border-b border-slate-100 bg-slate-50 px-5 py-2.5">
+                <Badge variant="success">
+                  {selectedIds.size} magasin{selectedIds.size !== 1 ? "s" : ""}{" "}
+                  sélectionné{selectedIds.size !== 1 ? "s" : ""}
+                </Badge>
+                <span className="text-xs text-slate-400">
+                  / {preview.stores.length} magasin
+                  {preview.stores.length !== 1 ? "s" : ""} disponible
+                  {preview.stores.length !== 1 ? "s" : ""}
+                </span>
+              </div>
+
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[860px] text-sm">
+                <table className="w-full min-w-[900px] text-sm">
                   <thead>
                     <tr className="border-b border-slate-100 text-left text-xs uppercase tracking-wide text-slate-400">
+                      <th className="w-10 px-5 py-3 font-medium">
+                        <span className="sr-only">Sélection</span>
+                      </th>
                       <th className="px-5 py-3 font-medium">ID</th>
                       <th className="px-5 py-3 font-medium">Nom</th>
                       <th className="px-5 py-3 font-medium">Ville</th>
@@ -279,47 +368,78 @@ export default function StoreSelection() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-50">
-                    {preview.stores.map((store) => (
-                      <tr
-                        key={store.store_id}
-                        className="transition-colors hover:bg-lavender-50"
-                      >
-                        <td className="px-5 py-3 font-medium text-slate-800">
-                          {store.store_id}
-                        </td>
-                        <td className="px-5 py-3 text-slate-700">{store.name}</td>
-                        <td className="px-5 py-3 text-slate-500">{store.city}</td>
-                        <td className="px-5 py-3 text-slate-500">{store.address}</td>
-                        <td className="px-5 py-3 text-right text-slate-600">
-                          {store.latitude}
-                        </td>
-                        <td className="px-5 py-3 text-right text-slate-600">
-                          {store.longitude}
-                        </td>
-                        <td className="px-5 py-3 text-slate-500">
-                          {store.opening_hours}
-                        </td>
-                        <td className="max-w-[180px] truncate px-5 py-3">
-                          <a
-                            href={store.store_url}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-primary-700 hover:underline"
-                            title={store.store_url}
-                          >
-                            {store.store_url}
-                          </a>
+                    {filteredStores.length === 0 ? (
+                      <tr>
+                        <td
+                          colSpan={9}
+                          className="px-5 py-10 text-center text-sm text-slate-400"
+                        >
+                          Aucun magasin ne correspond à ce filtre.
                         </td>
                       </tr>
-                    ))}
+                    ) : (
+                      filteredStores.map((store) => {
+                        const selected = selectedIds.has(store.store_id);
+                        return (
+                          <tr
+                            key={store.store_id}
+                            className={cn(
+                              "transition-colors hover:bg-lavender-50",
+                              selected && "bg-primary-50/40",
+                            )}
+                          >
+                            <td className="px-5 py-3">
+                              <input
+                                type="checkbox"
+                                aria-label={`Sélectionner ${store.name}`}
+                                className="h-4 w-4 cursor-pointer rounded border-slate-300 accent-primary-600"
+                                checked={selected}
+                                onChange={() => handleToggleSelect(store.store_id)}
+                              />
+                            </td>
+                            <td className="px-5 py-3 font-medium text-slate-800">
+                              {store.store_id}
+                            </td>
+                            <td className="px-5 py-3 text-slate-700">{store.name}</td>
+                            <td className="px-5 py-3 text-slate-500">{store.city}</td>
+                            <td className="px-5 py-3 text-slate-500">{store.address}</td>
+                            <td className="px-5 py-3 text-right text-slate-600">
+                              {store.latitude}
+                            </td>
+                            <td className="px-5 py-3 text-right text-slate-600">
+                              {store.longitude}
+                            </td>
+                            <td className="px-5 py-3 text-slate-500">
+                              {store.opening_hours}
+                            </td>
+                            <td className="max-w-[180px] truncate px-5 py-3">
+                              <a
+                                href={store.store_url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-primary-700 hover:underline"
+                                title={store.store_url}
+                              >
+                                {store.store_url}
+                              </a>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
                   </tbody>
                 </table>
               </div>
             </Card>
           )}
 
-          {/* Interactive map of the valid, imported stores */}
-          <StoreMap stores={preview.stores} />
+          {/* Interactive map of the valid, imported stores — kept in sync
+              with the table's selection and city filter. */}
+          <StoreMap
+            stores={filteredStores}
+            selectedIds={selectedIds}
+            onToggleSelect={handleToggleSelect}
+          />
         </>
       )}
     </>

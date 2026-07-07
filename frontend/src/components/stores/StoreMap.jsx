@@ -10,9 +10,24 @@ const OSM_TILE_URL = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
 const OSM_ATTRIBUTION =
   '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> contributors';
 
-/** Violet SBS marker (a plain divIcon avoids the classic broken-default-icon
- * issue Leaflet has with bundlers, since it needs no external image assets). */
-function buildMarkerIcon() {
+/**
+ * Violet SBS marker (a plain divIcon avoids the classic broken-default-icon
+ * issue Leaflet has with bundlers, since it needs no external image assets).
+ * Selected stores render bigger, with a halo and a checkmark, so the two
+ * states stay readable at a glance directly on the map.
+ */
+function buildMarkerIcon(selected) {
+  if (selected) {
+    return L.divIcon({
+      className: "",
+      html: `<span style="display:flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:9999px;background:${brand.primary};border:3px solid #ffffff;box-shadow:0 0 0 3px ${brand.primary}55,0 1px 4px rgba(15,23,42,0.35);">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+      </span>`,
+      iconSize: [32, 32],
+      iconAnchor: [16, 16],
+      popupAnchor: [0, -16],
+    });
+  }
   return L.divIcon({
     className: "",
     html: `<span style="display:block;width:16px;height:16px;border-radius:9999px;background:${brand.primary};border:3px solid #ffffff;box-shadow:0 1px 4px rgba(15,23,42,0.35);"></span>`,
@@ -29,9 +44,11 @@ function absoluteUrl(url) {
 
 /**
  * Popup content built with DOM nodes (not innerHTML) so store data coming
- * from an uploaded file can never be interpreted as markup.
+ * from an uploaded file can never be interpreted as markup. Includes a
+ * selection checkbox so a store can be selected/deselected from the popup,
+ * in addition to clicking the marker itself.
  */
-function buildPopupContent(store) {
+function buildPopupContent(store, selected, onToggleSelect) {
   const wrapper = document.createElement("div");
   wrapper.style.minWidth = "190px";
   wrapper.style.fontFamily = "inherit";
@@ -62,9 +79,23 @@ function buildPopupContent(store) {
     link.target = "_blank";
     link.rel = "noreferrer";
     link.textContent = "Voir la fiche magasin →";
-    link.style.cssText = `font-size:12px;font-weight:500;color:${brand.primary};text-decoration:underline;`;
+    link.style.cssText = `display:block;margin-bottom:8px;font-size:12px;font-weight:500;color:${brand.primary};text-decoration:underline;`;
     wrapper.appendChild(link);
   }
+
+  const selectRow = document.createElement("label");
+  selectRow.style.cssText =
+    "display:flex;align-items:center;gap:6px;padding-top:8px;border-top:1px solid #e2e8f0;cursor:pointer;font-size:12px;font-weight:500;color:#334155;";
+  const checkbox = document.createElement("input");
+  checkbox.type = "checkbox";
+  checkbox.checked = Boolean(selected);
+  checkbox.style.cssText = `width:14px;height:14px;accent-color:${brand.primary};cursor:pointer;`;
+  checkbox.addEventListener("change", () => onToggleSelect?.(store.store_id));
+  const labelText = document.createElement("span");
+  labelText.textContent = selected ? "Sélectionné" : "Sélectionner ce magasin";
+  selectRow.appendChild(checkbox);
+  selectRow.appendChild(labelText);
+  wrapper.appendChild(selectRow);
 
   return wrapper;
 }
@@ -77,9 +108,16 @@ function isFiniteCoord(value) {
  * Interactive map (Leaflet + OpenStreetMap tiles — no API key required)
  * showing imported stores as markers, auto-centered on the current data.
  * Fully self-contained: renders its own card header, counter and empty state.
+ *
+ * Stores can be selected/deselected directly from the map (marker click, or
+ * the checkbox inside the popup) — kept in sync with the table via the
+ * `selectedIds` / `onToggleSelect` props owned by the parent page.
  */
-export default function StoreMap({ stores = [] }) {
+export default function StoreMap({ stores = [], selectedIds, onToggleSelect }) {
   const containerRef = useRef(null);
+  const mapRef = useRef(null);
+  const markersLayerRef = useRef(null);
+  const reopenPopupForRef = useRef(null);
 
   const validStores = useMemo(
     () =>
@@ -90,41 +128,78 @@ export default function StoreMap({ stores = [] }) {
     [stores],
   );
 
+  // Effect 1 — mount/unmount the map, tile layer and marker layer group, and
+  // auto-fit the view. Only re-runs when the underlying store list changes
+  // (a new import/filter), never on a plain selection toggle, so the map
+  // doesn't jump around every time a checkbox is (de)selected.
   useEffect(() => {
     if (!containerRef.current || validStores.length === 0) return undefined;
 
     const map = L.map(containerRef.current, { scrollWheelZoom: true });
+    mapRef.current = map;
 
     L.tileLayer(OSM_TILE_URL, {
       attribution: OSM_ATTRIBUTION,
       maxZoom: 19,
     }).addTo(map);
 
-    const markers = validStores.map((store) => {
-      const marker = L.marker([store.latitude, store.longitude], {
-        icon: buildMarkerIcon(),
-      });
-      marker.bindPopup(buildPopupContent(store));
-      marker.addTo(map);
-      return marker;
-    });
+    markersLayerRef.current = L.layerGroup().addTo(map);
 
-    if (markers.length === 1) {
-      map.setView(markers[0].getLatLng(), 14);
+    if (validStores.length === 1) {
+      map.setView([validStores[0].latitude, validStores[0].longitude], 14);
     } else {
-      map.fitBounds(L.latLngBounds(markers.map((m) => m.getLatLng())), {
-        padding: [32, 32],
-      });
+      map.fitBounds(
+        L.latLngBounds(validStores.map((s) => [s.latitude, s.longitude])),
+        { padding: [32, 32] },
+      );
     }
 
-    // The container's real size can only be measured after paint.
     const raf = requestAnimationFrame(() => map.invalidateSize());
 
     return () => {
       cancelAnimationFrame(raf);
       map.remove();
+      mapRef.current = null;
+      markersLayerRef.current = null;
     };
   }, [validStores]);
+
+  // Effect 2 — (re)build the markers whenever the store list or the
+  // selection changes. Reopens the popup of the marker the user just
+  // (de)selected, so toggling from the popup itself doesn't make it vanish.
+  useEffect(() => {
+    const layerGroup = markersLayerRef.current;
+    if (!layerGroup) return undefined;
+
+    layerGroup.clearLayers();
+
+    const handleToggle = (storeId) => {
+      reopenPopupForRef.current = storeId;
+      onToggleSelect?.(storeId);
+    };
+
+    let markerToReopen = null;
+    validStores.forEach((store) => {
+      const selected = selectedIds?.has(store.store_id) ?? false;
+      const marker = L.marker([store.latitude, store.longitude], {
+        icon: buildMarkerIcon(selected),
+      });
+      marker.bindPopup(buildPopupContent(store, selected, handleToggle));
+      marker.on("click", () => handleToggle(store.store_id));
+      marker.addTo(layerGroup);
+      if (reopenPopupForRef.current === store.store_id) markerToReopen = marker;
+    });
+
+    if (markerToReopen) {
+      markerToReopen.openPopup();
+      reopenPopupForRef.current = null;
+    }
+  }, [validStores, selectedIds, onToggleSelect]);
+
+  const selectedCount =
+    selectedIds && validStores.length > 0
+      ? validStores.filter((s) => selectedIds.has(s.store_id)).length
+      : 0;
 
   return (
     <Card className="mt-6 p-5 sm:p-6">
@@ -138,10 +213,15 @@ export default function StoreMap({ stores = [] }) {
             Visualisation géographique des points de vente validés
           </p>
         </div>
-        <Badge variant="primary">
-          {validStores.length} magasin{validStores.length > 1 ? "s" : ""} affiché
-          {validStores.length > 1 ? "s" : ""} sur la carte
-        </Badge>
+        <div className="flex flex-wrap items-center gap-2">
+          {selectedIds && (
+            <Badge variant="success">{selectedCount} sélectionné(s)</Badge>
+          )}
+          <Badge variant="primary">
+            {validStores.length} magasin{validStores.length > 1 ? "s" : ""} affiché
+            {validStores.length > 1 ? "s" : ""} sur la carte
+          </Badge>
+        </div>
       </div>
 
       {validStores.length === 0 ? (
@@ -158,10 +238,16 @@ export default function StoreMap({ stores = [] }) {
           </p>
         </div>
       ) : (
-        <div
-          ref={containerRef}
-          className="h-[420px] w-full overflow-hidden rounded-2xl border border-slate-200"
-        />
+        <>
+          <div
+            ref={containerRef}
+            className="h-[420px] w-full overflow-hidden rounded-2xl border border-slate-200"
+          />
+          <p className="mt-3 text-xs text-slate-400">
+            Cliquez sur un marqueur (ou sur la case dans son popup) pour
+            sélectionner/désélectionner un magasin.
+          </p>
+        </>
       )}
     </Card>
   );
