@@ -27,7 +27,14 @@ function SummaryRow({ label, children }) {
  * Step 4 — app categories, "exclude games" toggle, live estimated-impressions
  * counter and the final campaign summary.
  */
-export default function StepCategories({ form, update, errors, options, estimated }) {
+export default function StepCategories({
+  form,
+  update,
+  errors,
+  options,
+  estimated,
+  selectedStores = [],
+}) {
   const advertiserLabel = form.advertiser_id
     ? labelOf(options.advertisers, form.advertiser_id)
     : "—";
@@ -141,6 +148,21 @@ export default function StepCategories({ form, update, errors, options, estimate
               <Gamepad2 className="h-3.5 w-3.5 text-slate-400" />
               {form.exclude_games ? "Exclus" : "Inclus"}
             </span>
+          </SummaryRow>
+          <SummaryRow label={`Magasins ciblés (${selectedStores.length})`}>
+            {selectedStores.length === 0 ? (
+              "Aucun"
+            ) : (
+              <span className="flex flex-col gap-1 sm:items-end">
+                {selectedStores.map((store) => (
+                  <span key={store.store_id} className="text-sm text-slate-700">
+                    {store.name}
+                    {store.city ? ` · ${store.city}` : ""}
+                    <span className="text-slate-400"> — {store.radius_km} km</span>
+                  </span>
+                ))}
+              </span>
+            )}
           </SummaryRow>
         </div>
       </div>

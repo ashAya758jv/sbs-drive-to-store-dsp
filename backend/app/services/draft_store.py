@@ -37,6 +37,7 @@ _PAYLOAD_KEYS = (
     "app_categories",
     "exclude_games",
     "estimated_impressions",
+    "selected_stores",
 )
 
 
@@ -111,6 +112,7 @@ def _to_dict(row: CampaignDraft) -> dict:
         "app_categories": payload.get("app_categories", []),
         "exclude_games": payload.get("exclude_games", True),
         "estimated_impressions": payload.get("estimated_impressions"),
+        "selected_stores": payload.get("selected_stores", []),
         "created_at": row.created_at,
         "updated_at": row.updated_at,
     }

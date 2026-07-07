@@ -211,3 +211,149 @@ dupliqué. Aucun changement backend n'a été nécessaire.
 - Pas encore de clustering de marqueurs : au-delà de quelques dizaines de
   magasins très proches, l'affichage individuel restera lisible mais pourra
   être densifié (amélioration future si le volume de magasins augmente).
+
+---
+
+## Jour 3 — Sélection des magasins
+
+### Objectif
+
+Permettre de **sélectionner** les magasins valides à retenir, depuis la liste
+**et** depuis la carte, avec un filtre par ville et des raccourcis.
+
+### Fonctionnalités réalisées
+
+- **Case à cocher par ligne** dans le tableau des magasins valides.
+- Sélection/désélection **depuis la carte** : clic sur un marqueur, ou case à
+  cocher dans le popup. Les marqueurs sélectionnés sont visuellement distincts
+  (plus grands, halo violet + coche).
+- **Synchronisation bidirectionnelle** liste ↔ carte en temps réel (état
+  `selectedIds` porté par la page `StoreSelection.jsx`, partagé avec `StoreMap`).
+- Boutons **« Tout sélectionner »** / **« Tout désélectionner »** (agissant sur
+  les magasins visibles selon le filtre actif).
+- **Filtre par ville** qui restreint simultanément le tableau et la carte
+  (recentrage automatique).
+- **Compteur** : « X magasin(s) sélectionné(s) / Y magasin(s) disponible(s) ».
+
+### État actuel et limites
+
+- La sélection est un **état frontend** (non persistée) — cohérent avec le fait
+  que l'import n'est pas encore écrit en base.
+
+---
+
+## Jour 4 — Rayon de ciblage (geofencing visuel)
+
+### Objectif
+
+Associer à chaque magasin **sélectionné** un **rayon de ciblage réglable**, et
+le matérialiser par un **cercle de geofencing** sur la carte, synchronisé en
+temps réel.
+
+### Fonctionnalités réalisées
+
+- Nouvelle section **« Rayons de ciblage (geofencing) »** dans
+  `StoreSelection.jsx`, listant chaque magasin sélectionné avec : **nom**,
+  **ville**, **rayon actuel en km**, et un **slider de 1 à 20 km**.
+- **Rayon par défaut : 5 km** lorsqu'un magasin vient d'être sélectionné.
+- Mise à jour **immédiate** au déplacement du slider (valeur affichée + cercle).
+- Sur la carte (`StoreMap.jsx`), un **cercle violet** est dessiné autour de
+  chaque magasin sélectionné, dans une **couche dédiée** sous les marqueurs
+  (cercles `interactive: false` pour ne jamais bloquer le clic sur un marqueur).
+- **Synchronisation temps réel** : le cercle grandit/réduit avec le slider
+  (réconciliation en place via `circle.setRadius`, sans reconstruire les
+  marqueurs — les popups ouverts restent ouverts) ; désélectionner un magasin
+  **retire** son cercle ; le re-sélectionner **restaure le rayon déjà choisi**
+  (sinon 5 km par défaut) — le rayon est mémorisé par `store_id` (état `radii`).
+- Les **marqueurs restent visibles** ; le **filtre ville** et la
+  **sélection liste/carte** du Jour 3 sont conservés.
+- **Compteur** dans l'en-tête de la section : nombre de magasins sélectionnés +
+  **rayon moyen** (km) des magasins sélectionnés.
+
+### Choix technique
+
+- Réalisé avec **Leaflet natif** (`L.circle`), en cohérence avec les Jours 2/3
+  (pas d'ajout de `react-leaflet`, aucune nouvelle dépendance).
+- Correctif au passage : la vue de la carte (`fitBounds`) est désormais
+  calculée **après** `invalidateSize()`, ce qui évite un cas où la projection
+  Leaflet plaçait marqueurs et cercles hors du cadre visible quand le conteneur
+  n'avait pas encore sa taille réelle.
+
+### État actuel et limites
+
+- **Jour 4 terminé** côté visuel/interactif. Le rayon reste un **état frontend**
+  (non persisté, pas encore envoyé au backend) : le ciblage géographique réel
+  (association campagne ↔ magasins ↔ rayon) sera branché lors de l'étape de
+  persistance.
+- Le cercle est un rayon **circulaire simple** (pas de zones/polygones
+  personnalisés).
+
+---
+
+## Jour 5 — Connexion au parcours de création de campagne
+
+### Objectif
+
+Relier l'écran **Magasins** au **formulaire de création de campagne** : une
+nouvelle étape permet de choisir les magasins ciblés (avec leur rayon), et ces
+données sont incluses dans le brouillon enregistré via l'API.
+
+### Fonctionnalités réalisées
+
+- **Refactorisation en composant réutilisable** : toute l'expérience
+  import + sélection + filtre ville + rayon + carte a été extraite dans
+  `frontend/src/components/stores/StoreTargetingPanel.jsx` (composant
+  **contrôlé** : le parent détient `preview`, `selectedIds`, `radii`). La page
+  Magasins (`StoreSelection.jsx`) devient un simple wrapper autour de ce
+  panneau — **comportement des Jours 1-4 inchangé**, zéro duplication.
+- **Nouvelle étape « Magasins ciblés »** dans le wizard (`CampaignCreate.jsx`),
+  désormais en **5 étapes** : Général → Ciblage technique → Formats →
+  **Magasins ciblés** → Catégories. L'étape réutilise `StoreTargetingPanel`
+  (donc `StoreMap`), permettant d'importer la base, de
+  **sélectionner/désélectionner** des magasins (liste + carte), de régler le
+  **rayon 1–20 km** par magasin et de voir le **compteur** « X sélectionné(s) ».
+- L'étape est **optionnelle** (aucune validation bloquante), pour ne pas casser
+  la création de campagne existante ni la sauvegarde de brouillon.
+- L'état des magasins (import, sélection, rayons) est **porté au niveau du
+  wizard**, donc il **persiste** quand on navigue entre les étapes.
+- **Résumé final** enrichi : la ligne « Magasins ciblés (N) » liste chaque
+  magasin sélectionné avec sa **ville** et son **rayon** (ex. *Marjane
+  Californie · Casablanca — 8 km*).
+- **Sauvegarde brouillon** : le `POST /api/campaigns/drafts` inclut désormais
+  `selected_stores` (`store_id`, `name`, `city`, `latitude`, `longitude`,
+  `radius_km`).
+
+### Schémas adaptés (backend)
+
+- Nouveau schéma Pydantic `SelectedStore` et champ `selected_stores:
+  list[SelectedStore] = []` sur `DraftBase` (donc `DraftCreate`/`DraftRead`).
+- Persistance : `selected_stores` est stocké dans la colonne **JSONB `payload`**
+  de `campaign_drafts` (ajout à `_PAYLOAD_KEYS`) — **aucune migration SQL
+  nécessaire**. Champ optionnel → **rétro-compatible** avec les brouillons
+  existants.
+
+### Correctif de robustesse (carte)
+
+- `StoreMap` utilise maintenant un **`ResizeObserver`** : la carte est
+  (re)dimensionnée et centrée dès que son conteneur obtient une taille réelle.
+  Cela corrige le cas où la carte est montée dans un conteneur de largeur nulle
+  (par ex. au moment où l'étape du wizard s'affiche), qui pouvait laisser la
+  carte vide.
+
+### Tests effectués
+
+- `npm run build` ✅ et `npm run lint` ✅ (0 warning).
+- Backend : roundtrip `selected_stores` (création + relecture) ✅, brouillon
+  sans magasins ✅ (rétro-compat).
+- Navigateur (parcours complet) : wizard 5 étapes → étape Magasins (import +
+  sélection + rayon 8 km + carte) → résumé listant le magasin →
+  **`POST /api/campaigns/drafts` → 201** avec `selected_stores` (rayon inclus).
+- Page Magasins autonome : import + sélection + rayons + carte toujours
+  fonctionnels après refactorisation.
+
+### État actuel et limites
+
+- Le brouillon **enregistre** bien les magasins et rayons ; l'exploitation
+  côté diffusion (ciblage réel) reste une étape ultérieure.
+- Pas encore de persistance de la BDD magasins elle-même : chaque parcours
+  ré-importe le fichier client (cohérent avec les Jours 1-4).

@@ -12,6 +12,17 @@ from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 from app.core.enums import CampaignObjective
 
 
+class SelectedStore(BaseModel):
+    """A targeted store with its geofencing radius (from the Magasins step)."""
+
+    store_id: str
+    name: str
+    city: str | None = None
+    latitude: float | None = None
+    longitude: float | None = None
+    radius_km: float = 5
+
+
 class DraftBase(BaseModel):
     # Step 1 — informations générales
     name: str
@@ -35,6 +46,9 @@ class DraftBase(BaseModel):
     app_categories: list[str] = []
     exclude_games: bool = True
     estimated_impressions: int | None = None
+
+    # Magasins ciblés (avec rayon de geofencing)
+    selected_stores: list[SelectedStore] = []
 
 
 class DraftCreate(DraftBase):
