@@ -1,23 +1,327 @@
-import { Store } from "lucide-react";
-import PlaceholderPage from "../components/common/PlaceholderPage";
+import { useState } from "react";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  FileSpreadsheet,
+  Loader2,
+  Search,
+  Upload,
+} from "lucide-react";
+import PageHeader from "../components/layout/PageHeader";
+import Card from "../components/ui/Card";
+import Button from "../components/ui/Button";
+import Badge from "../components/ui/Badge";
+import { EXPECTED_COLUMNS, previewStoreImport } from "../data/storesApi";
+import StoreMap from "../components/stores/StoreMap";
+import { cn } from "../lib/cn";
+
+/* Small stat tile shown in the analysis summary. */
+function StatTile({ label, value, tone }) {
+  const tones = {
+    neutral: "border-slate-200 bg-white text-slate-900",
+    success: "border-emerald-200 bg-emerald-50/60 text-emerald-700",
+    danger: "border-rose-200 bg-rose-50/60 text-rose-700",
+  };
+  return (
+    <div className={cn("rounded-xl border p-4", tones[tone])}>
+      <p className="text-2xl font-semibold">{value}</p>
+      <p className="mt-0.5 text-xs font-medium uppercase tracking-wide opacity-70">
+        {label}
+      </p>
+    </div>
+  );
+}
 
 export default function StoreSelection() {
+  const [file, setFile] = useState(null);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [preview, setPreview] = useState(null);
+  const [apiError, setApiError] = useState(null);
+
+  const handleFileChange = (event) => {
+    setFile(event.target.files?.[0] ?? null);
+    setPreview(null);
+    setApiError(null);
+  };
+
+  const handleAnalyze = async () => {
+    if (!file) return;
+    setAnalyzing(true);
+    setApiError(null);
+    try {
+      setPreview(await previewStoreImport(file));
+    } catch (err) {
+      setPreview(null);
+      setApiError(err.message);
+    } finally {
+      setAnalyzing(false);
+    }
+  };
+
+  const hasRowErrors = preview?.errors?.length > 0;
+  const hasMissingColumns = preview?.missing_columns?.length > 0;
+  const allValid =
+    preview && preview.total_rows > 0 && preview.error_count === 0 && !hasMissingColumns;
+
   return (
-    <PlaceholderPage
-      breadcrumb={[
-        { label: "Campagnes", to: "/campagnes" },
-        { label: "Sélection des magasins" },
-      ]}
-      title="Sélection des magasins"
-      subtitle="Choisissez les points de vente et zones de géofencing"
-      icon={Store}
-      description="Ce module permettra de sélectionner les magasins à promouvoir et de définir les rayons de géofencing autour de chaque point de vente."
-      features={[
-        "Recherche et filtrage des points de vente",
-        "Sélection multiple par enseigne ou ville",
-        "Définition des rayons de géofencing",
-        "Aperçu cartographique des zones ciblées",
-      ]}
-    />
+    <>
+      <PageHeader
+        breadcrumb={[{ label: "Magasins" }]}
+        title="Magasins"
+        subtitle="Importez la base de données client des points de vente"
+      />
+
+      {/* Import card */}
+      <Card className="p-5 sm:p-6">
+        <div className="mb-4">
+          <h2 className="text-base font-semibold text-slate-900">
+            Import BDD client
+          </h2>
+          <p className="text-sm text-slate-400">
+            Chargez le fichier des magasins fourni par le client (.xlsx ou .csv),
+            puis lancez l'analyse pour vérifier les données avant import.
+          </p>
+        </div>
+
+        {/* Upload zone */}
+        <label
+          className={cn(
+            "flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed p-8 text-center transition-colors",
+            file
+              ? "border-primary-300 bg-primary-50/50"
+              : "border-slate-200 bg-lavender-50 hover:border-primary-300 hover:bg-primary-50/40",
+          )}
+        >
+          <input
+            type="file"
+            accept=".xlsx,.csv"
+            className="sr-only"
+            onChange={handleFileChange}
+          />
+          {file ? (
+            <>
+              <span className="grid h-11 w-11 place-items-center rounded-xl bg-primary-600 text-white">
+                <FileSpreadsheet className="h-5 w-5" />
+              </span>
+              <p className="text-sm font-medium text-slate-800">{file.name}</p>
+              <p className="text-xs text-slate-400">
+                Cliquez pour choisir un autre fichier
+              </p>
+            </>
+          ) : (
+            <>
+              <span className="grid h-11 w-11 place-items-center rounded-xl bg-primary-50 text-primary-600">
+                <Upload className="h-5 w-5" />
+              </span>
+              <p className="text-sm font-medium text-slate-700">
+                Cliquez pour choisir un fichier
+              </p>
+              <p className="text-xs text-slate-400">Formats acceptés : .xlsx, .csv</p>
+            </>
+          )}
+        </label>
+
+        {/* Expected columns hint */}
+        <div className="mt-4 rounded-xl bg-slate-50 p-4">
+          <p className="text-xs font-medium text-slate-500">
+            Colonnes obligatoires attendues (1ʳᵉ ligne du fichier) :
+          </p>
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {EXPECTED_COLUMNS.map((column) => (
+              <code
+                key={column}
+                className="rounded-md bg-white px-2 py-0.5 text-xs text-primary-700 ring-1 ring-slate-200"
+              >
+                {column}
+              </code>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-5 flex items-center justify-end gap-3">
+          <Button onClick={handleAnalyze} disabled={!file || analyzing}>
+            {analyzing ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Search className="h-4 w-4" />
+            )}
+            Analyser le fichier
+          </Button>
+        </div>
+
+        {/* API-level error (backend down, wrong format, unreadable file…) */}
+        {apiError && (
+          <div className="mt-4 flex items-start gap-2 rounded-lg bg-rose-50 px-4 py-3 text-sm text-rose-700">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+            {apiError}
+          </div>
+        )}
+      </Card>
+
+      {/* Analysis result */}
+      {preview && (
+        <>
+          {/* Summary */}
+          <Card className="mt-6 p-5 sm:p-6">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+              <h2 className="text-base font-semibold text-slate-900">
+                Résultat de l'analyse
+              </h2>
+              <Badge variant="neutral">{preview.filename}</Badge>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-3">
+              <StatTile label="Lignes analysées" value={preview.total_rows} tone="neutral" />
+              <StatTile label="Lignes valides" value={preview.valid_count} tone="success" />
+              <StatTile label="Lignes en erreur" value={preview.error_count} tone="danger" />
+            </div>
+
+            <div
+              className={cn(
+                "mt-4 flex items-start gap-2 rounded-lg px-4 py-3 text-sm",
+                allValid ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-800",
+              )}
+            >
+              {allValid ? (
+                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
+              ) : (
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+              )}
+              {preview.message}
+            </div>
+          </Card>
+
+          {/* Missing columns */}
+          {hasMissingColumns && (
+            <Card className="mt-6 border-amber-200 p-5">
+              <h3 className="flex items-center gap-2 text-sm font-semibold text-amber-800">
+                <AlertTriangle className="h-4 w-4" />
+                Colonnes manquantes dans l'en-tête
+              </h3>
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {preview.missing_columns.map((column) => (
+                  <code
+                    key={column}
+                    className="rounded-md bg-amber-50 px-2 py-0.5 text-xs text-amber-800 ring-1 ring-amber-200"
+                  >
+                    {column}
+                  </code>
+                ))}
+              </div>
+            </Card>
+          )}
+
+          {/* Row errors */}
+          {hasRowErrors && (
+            <Card className="mt-6 border-rose-200">
+              <div className="border-b border-rose-100 p-5">
+                <h3 className="flex items-center gap-2 text-sm font-semibold text-rose-700">
+                  <AlertTriangle className="h-4 w-4" />
+                  Erreurs détectées ({preview.errors.length})
+                </h3>
+                <p className="mt-0.5 text-xs text-slate-400">
+                  Corrigez ces lignes dans le fichier puis relancez l'analyse.
+                </p>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[520px] text-sm">
+                  <thead>
+                    <tr className="border-b border-rose-100 text-left text-xs uppercase tracking-wide text-slate-400">
+                      <th className="px-5 py-3 font-medium">Ligne</th>
+                      <th className="px-5 py-3 font-medium">Champ</th>
+                      <th className="px-5 py-3 font-medium">Erreur</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-rose-50">
+                    {preview.errors.map((error, index) => (
+                      <tr key={`${error.row}-${error.field}-${index}`}>
+                        <td className="px-5 py-3 font-medium text-slate-800">
+                          {error.row}
+                        </td>
+                        <td className="px-5 py-3">
+                          <code className="rounded bg-rose-50 px-1.5 py-0.5 text-xs text-rose-700">
+                            {error.field}
+                          </code>
+                        </td>
+                        <td className="px-5 py-3 text-rose-700">{error.message}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
+          )}
+
+          {/* Valid stores */}
+          {preview.stores.length > 0 && (
+            <Card className="mt-6">
+              <div className="border-b border-slate-100 p-5">
+                <h3 className="text-sm font-semibold text-slate-900">
+                  Magasins valides ({preview.valid_count})
+                </h3>
+                <p className="mt-0.5 text-xs text-slate-400">
+                  Ces magasins sont affichés sur la carte ci-dessous.
+                  L'import définitif en base sera ajouté à une étape ultérieure.
+                </p>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[860px] text-sm">
+                  <thead>
+                    <tr className="border-b border-slate-100 text-left text-xs uppercase tracking-wide text-slate-400">
+                      <th className="px-5 py-3 font-medium">ID</th>
+                      <th className="px-5 py-3 font-medium">Nom</th>
+                      <th className="px-5 py-3 font-medium">Ville</th>
+                      <th className="px-5 py-3 font-medium">Adresse</th>
+                      <th className="px-5 py-3 text-right font-medium">Latitude</th>
+                      <th className="px-5 py-3 text-right font-medium">Longitude</th>
+                      <th className="px-5 py-3 font-medium">Horaires</th>
+                      <th className="px-5 py-3 font-medium">URL</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-50">
+                    {preview.stores.map((store) => (
+                      <tr
+                        key={store.store_id}
+                        className="transition-colors hover:bg-lavender-50"
+                      >
+                        <td className="px-5 py-3 font-medium text-slate-800">
+                          {store.store_id}
+                        </td>
+                        <td className="px-5 py-3 text-slate-700">{store.name}</td>
+                        <td className="px-5 py-3 text-slate-500">{store.city}</td>
+                        <td className="px-5 py-3 text-slate-500">{store.address}</td>
+                        <td className="px-5 py-3 text-right text-slate-600">
+                          {store.latitude}
+                        </td>
+                        <td className="px-5 py-3 text-right text-slate-600">
+                          {store.longitude}
+                        </td>
+                        <td className="px-5 py-3 text-slate-500">
+                          {store.opening_hours}
+                        </td>
+                        <td className="max-w-[180px] truncate px-5 py-3">
+                          <a
+                            href={store.store_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-primary-700 hover:underline"
+                            title={store.store_url}
+                          >
+                            {store.store_url}
+                          </a>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
+          )}
+
+          {/* Interactive map of the valid, imported stores */}
+          <StoreMap stores={preview.stores} />
+        </>
+      )}
+    </>
   );
 }

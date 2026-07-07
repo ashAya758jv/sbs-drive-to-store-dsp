@@ -94,8 +94,8 @@ export default function StepGeneral({ form, update, errors, options }) {
       <Field
         label="Budget quotidien (MAD)"
         htmlFor="daily_budget"
-        required
         error={errors.daily_budget}
+        hint="Optionnel"
       >
         <Input
           id="daily_budget"
@@ -105,7 +105,7 @@ export default function StepGeneral({ form, update, errors, options }) {
           value={form.daily_budget}
           invalid={Boolean(errors.daily_budget)}
           onChange={(e) => update({ daily_budget: e.target.value })}
-          placeholder="Ex. 1600"
+          placeholder="Ex. 1600 (optionnel)"
         />
       </Field>
     </div>

@@ -22,6 +22,7 @@ import {
   FALLBACK_OPTIONS,
   getCampaignOptions,
 } from "../data/campaignApi";
+import { compatibleOsValues } from "../components/campaigns/helpers";
 
 const STEPS = [
   { id: "general", label: "Informations générales" },
@@ -64,11 +65,15 @@ function validateGeneral(form) {
   if (!(Number(form.total_budget) > 0)) {
     errors.total_budget = "Indiquez un budget total supérieur à 0.";
   }
-  if (!(Number(form.daily_budget) > 0)) {
-    errors.daily_budget = "Indiquez un budget quotidien supérieur à 0.";
-  } else if (Number(form.daily_budget) > Number(form.total_budget)) {
-    errors.daily_budget =
-      "Le budget quotidien ne peut pas dépasser le budget total.";
+  // Budget quotidien optionnel : validé seulement s'il est renseigné.
+  if (form.daily_budget !== "" && form.daily_budget != null) {
+    const daily = Number(form.daily_budget);
+    if (Number.isNaN(daily) || daily < 0) {
+      errors.daily_budget = "Le budget quotidien doit être un nombre positif ou nul.";
+    } else if (Number(form.total_budget) > 0 && daily > Number(form.total_budget)) {
+      errors.daily_budget =
+        "Le budget quotidien ne peut pas dépasser le budget total.";
+    }
   }
   return errors;
 }
@@ -76,8 +81,16 @@ function validateGeneral(form) {
 function validateTargeting(form) {
   const errors = {};
   if (form.devices.length === 0) errors.devices = "Choisissez au moins un appareil.";
-  if (form.operating_systems.length === 0) {
-    errors.operating_systems = "Choisissez au moins un système d'exploitation.";
+  // At least one OS, and it must be compatible with the selected devices.
+  const allowed = compatibleOsValues(form.devices);
+  const compatibleSelected = form.operating_systems.filter((os) =>
+    allowed.includes(os),
+  );
+  if (compatibleSelected.length === 0) {
+    errors.operating_systems =
+      form.devices.length === 0
+        ? "Choisissez d'abord un appareil, puis un système compatible."
+        : "Choisissez au moins un système d'exploitation compatible.";
   }
   return errors;
 }
@@ -144,7 +157,11 @@ export default function CampaignCreate() {
     start_date: form.start_date || null,
     end_date: form.end_date || null,
     total_budget: Number(form.total_budget) || 0,
-    daily_budget: Number(form.daily_budget) || 0,
+    // Budget quotidien optionnel : null si vide (le backend le normalise en 0).
+    daily_budget:
+      form.daily_budget === "" || form.daily_budget == null
+        ? null
+        : Number(form.daily_budget),
     devices: form.devices,
     operating_systems: form.operating_systems,
     time_ranges: form.time_ranges,

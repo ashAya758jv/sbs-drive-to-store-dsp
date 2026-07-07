@@ -18,7 +18,7 @@ backend, avec sauvegarde de la campagne au statut `draft`.
 
 - **Assistant en 4 étapes** à la route `/campagnes/nouvelle` :
   1. **Informations générales** — nom, annonceur, objectif, dates, budget total
-     et budget quotidien.
+     (obligatoire) et budget quotidien (**optionnel**).
   2. **Ciblage technique** — appareils (mobile, desktop, tablette), systèmes
      d'exploitation (Android, iOS, Windows, macOS), plages horaires.
   3. **Formats publicitaires** — bannière, pavé, interstitiel (avec description
@@ -30,7 +30,9 @@ backend, avec sauvegarde de la campagne au statut `draft`.
 - **Boutons** : Précédent, Suivant, Enregistrer le brouillon, Créer la campagne.
 - **Validation** claire des champs obligatoires à chaque étape, avec messages
   d'erreur visibles (bordures rouges + texte explicite). Contrôles de
-  cohérence : date de fin ≥ date de début, budget quotidien ≤ budget total.
+  cohérence : date de fin ≥ date de début. Le **budget quotidien est optionnel** ;
+  s'il est renseigné, il doit être un nombre positif ou nul et ne pas dépasser le
+  budget total. S'il est laissé vide, l'API l'enregistre à 0.
 - **Page « Campagnes »** (`/campagnes`) transformée en liste avec un bouton
   **« Créer une campagne »** et l'affichage des brouillons créés.
 - **Couche API frontend** (`src/lib/api.js`, `src/data/campaignApi.js`) avec

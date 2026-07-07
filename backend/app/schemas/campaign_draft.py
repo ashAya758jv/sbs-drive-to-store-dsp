@@ -20,7 +20,8 @@ class DraftBase(BaseModel):
     start_date: date | None = None
     end_date: date | None = None
     total_budget: float = 0
-    daily_budget: float = 0
+    # Optionnel : peut être absent / null dans le payload (normalisé en 0).
+    daily_budget: float | None = 0
 
     # Step 2 — ciblage technique
     devices: list[str] = []
@@ -44,11 +45,21 @@ class DraftCreate(DraftBase):
             raise ValueError("Le nom de la campagne est obligatoire.")
         return value.strip()
 
-    @field_validator("total_budget", "daily_budget")
+    @field_validator("total_budget")
     @classmethod
-    def _budget_not_negative(cls, value: float) -> float:
+    def _total_not_negative(cls, value: float) -> float:
         if value < 0:
-            raise ValueError("Le budget ne peut pas être négatif.")
+            raise ValueError("Le budget total ne peut pas être négatif.")
+        return value
+
+    @field_validator("daily_budget")
+    @classmethod
+    def _daily_optional(cls, value: float | None) -> float:
+        # Le budget quotidien est optionnel : absent / null => 0.
+        if value is None:
+            return 0.0
+        if value < 0:
+            raise ValueError("Le budget quotidien ne peut pas être négatif.")
         return value
 
     @model_validator(mode="after")
