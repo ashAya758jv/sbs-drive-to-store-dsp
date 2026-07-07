@@ -12,6 +12,7 @@ import Card from "../components/ui/Card";
 import Button from "../components/ui/Button";
 import Badge from "../components/ui/Badge";
 import { EXPECTED_COLUMNS, previewStoreImport } from "../data/storesApi";
+import StoreMap from "../components/stores/StoreMap";
 import { cn } from "../lib/cn";
 
 /* Small stat tile shown in the analysis summary. */
@@ -259,8 +260,8 @@ export default function StoreSelection() {
                   Magasins valides ({preview.valid_count})
                 </h3>
                 <p className="mt-0.5 text-xs text-slate-400">
-                  Ces magasins seront importés à l'étape suivante (carte
-                  interactive prévue au Jour 2).
+                  Ces magasins sont affichés sur la carte ci-dessous.
+                  L'import définitif en base sera ajouté à une étape ultérieure.
                 </p>
               </div>
               <div className="overflow-x-auto">
@@ -316,6 +317,9 @@ export default function StoreSelection() {
               </div>
             </Card>
           )}
+
+          {/* Interactive map of the valid, imported stores */}
+          <StoreMap stores={preview.stores} />
         </>
       )}
     </>

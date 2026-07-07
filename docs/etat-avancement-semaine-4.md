@@ -131,3 +131,83 @@ store_id,name,city,address,latitude,longitude,opening_hours,store_url
 1. Persister les magasins importés (endpoint d'import définitif + base).
 2. Afficher les magasins sur une **carte interactive** et gérer le géofencing.
 3. Rattacher les magasins à un annonceur et gérer les doublons avec l'existant.
+
+---
+
+## Jour 2 — Carte interactive
+
+### Objectif
+
+Visualiser géographiquement, directement sur la page **Magasins**, les
+magasins **valides** issus de l'analyse du Jour 1 (aucune modification du
+parsing/validation, aucune persistance ajoutée à ce stade).
+
+### Ajout de la carte
+
+- Nouveau composant dédié et autonome :
+  `frontend/src/components/stores/StoreMap.jsx`.
+- Solution technique : **Leaflet** + tuiles **OpenStreetMap**, choisie parce
+  qu'elle **ne nécessite aucune clé API** (contrairement à Google Maps /
+  Mapbox), ce qui garantit que la démo fonctionne immédiatement en local.
+- Dépendance npm ajoutée : **`leaflet` (^1.9.4)** — seule nouvelle dépendance,
+  `package.json` et `package-lock.json` mis à jour via `npm install leaflet`.
+- La carte s'affiche automatiquement **après une analyse réussie**, juste
+  sous le tableau « Magasins valides » (page `frontend/src/pages/StoreSelection.jsx`),
+  sans toucher à l'interface d'import existante (upload, résumé, tableau,
+  bloc d'erreurs restent inchangés).
+
+### Affichage des marqueurs
+
+- Un **marqueur violet** (couleur SBS, `brand.primary` de `styles/theme.js`)
+  par magasin valide, positionné avec ses coordonnées `latitude`/`longitude`.
+- **Centrage et zoom automatiques** sur l'ensemble des magasins affichés
+  (`fitBounds` s'il y en a plusieurs, centrage direct si un seul).
+- **Popup au clic** sur un marqueur, avec : nom du magasin, ville + adresse,
+  horaires d'ouverture, et un lien **« Voir la fiche magasin → »** vers
+  `store_url` (uniquement s'il est renseigné).
+- Sécurité : le contenu du popup est construit avec des **nœuds DOM
+  (`textContent`)**, jamais avec du HTML injecté — les données viennent d'un
+  fichier importé par l'utilisateur et ne doivent jamais être interprétées
+  comme du markup.
+- **État vide** : si aucun magasin valide n'est disponible (avant toute
+  analyse, ou si une analyse ne produit aucune ligne valide), un message
+  propre s'affiche à la place de la carte : *« Aucun magasin importé pour
+  l'instant »*, dans le même style que le reste de l'interface (pas
+  d'instance Leaflet créée inutilement dans ce cas).
+- Un **compteur** (« *N* magasin(s) affiché(s) sur la carte ») accompagne le
+  titre **« Carte des magasins importés »** et le sous-titre
+  **« Visualisation géographique des points de vente validés »**.
+
+### Données utilisées
+
+La carte réutilise directement `preview.stores` — le tableau des magasins
+**déjà validés** par l'analyse du Jour 1 (issu de `POST
+/api/stores/import/preview`), sans nouvel appel réseau ni nouvel état
+dupliqué. Aucun changement backend n'a été nécessaire.
+
+### Tests effectués
+
+- `npm run build` ✅ et `npm run lint` ✅.
+- Vérification navigateur avec le fichier d'exemple
+  `docs/samples/stores-valid.csv` : 3 marqueurs affichés, vue centrée sur
+  Casablanca/Rabat, popup correct au clic (nom, ville · adresse, horaires,
+  lien cliquable vers `store_url`).
+- Vérification de l'état vide avec un fichier ne produisant aucune ligne
+  valide : message propre affiché, compteur à 0, aucune carte Leaflet montée.
+- Vérification que le dashboard, le login, la sidebar, les campagnes et la
+  création de campagne ne sont pas affectés.
+
+### État actuel et limites
+
+- La carte est **en lecture seule** : pas de clic pour ajouter/éditer un
+  magasin, pas de géofencing (rayon autour d'un point de vente) — prévu à une
+  étape ultérieure.
+- Les tuiles proviennent du serveur public **OpenStreetMap** (`tile.openstreetmap.org`) :
+  suffisant pour la démo locale, mais à remplacer par un fournisseur de tuiles
+  dédié (ou une clé Google Maps/Mapbox) avant un usage en production à fort
+  volume, pour respecter leur politique d'usage.
+- Aucune donnée n'est persistée : la carte ne montre que la dernière analyse
+  en mémoire (elle se réinitialise si la page est rechargée).
+- Pas encore de clustering de marqueurs : au-delà de quelques dizaines de
+  magasins très proches, l'affichage individuel restera lisible mais pourra
+  être densifié (amélioration future si le volume de magasins augmente).
