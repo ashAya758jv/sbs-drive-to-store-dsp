@@ -167,16 +167,22 @@ export default function StoreMap({
       }
     };
 
-    // Size the container first, then compute the view — running fitBounds
-    // before the container has its real size can break Leaflet's projection
-    // (markers/circles land far outside the visible map).
-    const raf = requestAnimationFrame(() => {
+    // The container may start at 0 width (rendered inside a just-shown card or
+    // wizard step). A ResizeObserver keeps the map sized, and computes the view
+    // only once the container has a real size — running fitBounds too early
+    // breaks Leaflet's projection (markers/circles land off the map).
+    let fitted = false;
+    const resizeObserver = new ResizeObserver(() => {
       map.invalidateSize();
-      fitToStores();
+      if (!fitted && containerRef.current && containerRef.current.clientWidth > 0) {
+        fitToStores();
+        fitted = true;
+      }
     });
+    resizeObserver.observe(containerRef.current);
 
     return () => {
-      cancelAnimationFrame(raf);
+      resizeObserver.disconnect();
       map.remove();
       mapRef.current = null;
       markersLayerRef.current = null;

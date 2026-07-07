@@ -16,6 +16,9 @@ import StepGeneral from "../components/campaigns/StepGeneral";
 import StepTargeting from "../components/campaigns/StepTargeting";
 import StepFormats from "../components/campaigns/StepFormats";
 import StepCategories from "../components/campaigns/StepCategories";
+import StoreTargetingPanel, {
+  DEFAULT_RADIUS_KM,
+} from "../components/stores/StoreTargetingPanel";
 import {
   createDraft,
   estimateImpressions,
@@ -28,6 +31,7 @@ const STEPS = [
   { id: "general", label: "Informations générales" },
   { id: "targeting", label: "Ciblage technique" },
   { id: "formats", label: "Formats publicitaires" },
+  { id: "stores", label: "Magasins ciblés" },
   { id: "categories", label: "Catégories d'applications" },
 ];
 
@@ -111,10 +115,16 @@ function validateCategories(form) {
   return errors;
 }
 
+/** Store targeting is optional — it never blocks navigation or submission. */
+function validateStores() {
+  return {};
+}
+
 const VALIDATORS = [
   validateGeneral,
   validateTargeting,
   validateFormats,
+  validateStores,
   validateCategories,
 ];
 
@@ -128,6 +138,12 @@ export default function CampaignCreate() {
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState(null); // saved draft
 
+  // Step "Magasins ciblés" — kept at the wizard level so the selection and
+  // radii survive navigating between steps.
+  const [storePreview, setStorePreview] = useState(null);
+  const [storeSelectedIds, setStoreSelectedIds] = useState(() => new Set());
+  const [storeRadii, setStoreRadii] = useState({});
+
   useEffect(() => {
     let active = true;
     getCampaignOptions().then((opts) => {
@@ -139,6 +155,21 @@ export default function CampaignCreate() {
   }, []);
 
   const estimated = useMemo(() => estimateImpressions(form), [form]);
+
+  /** Selected stores resolved with their geofencing radius (for payload/summary). */
+  const selectedStores = useMemo(() => {
+    const stores = storePreview?.stores ?? [];
+    return stores
+      .filter((store) => storeSelectedIds.has(store.store_id))
+      .map((store) => ({
+        store_id: store.store_id,
+        name: store.name,
+        city: store.city,
+        latitude: store.latitude,
+        longitude: store.longitude,
+        radius_km: storeRadii[store.store_id] ?? DEFAULT_RADIUS_KM,
+      }));
+  }, [storePreview, storeSelectedIds, storeRadii]);
 
   const update = (patch) => {
     setForm((prev) => ({ ...prev, ...patch }));
@@ -169,6 +200,7 @@ export default function CampaignCreate() {
     app_categories: form.app_categories,
     exclude_games: form.exclude_games,
     estimated_impressions: estimated,
+    selected_stores: selectedStores,
   });
 
   const goToStep = (index) => {
@@ -249,6 +281,9 @@ export default function CampaignCreate() {
     setNotice(null);
     setResult(null);
     setStep(0);
+    setStorePreview(null);
+    setStoreSelectedIds(new Set());
+    setStoreRadii({});
   };
 
   const breadcrumb = [
@@ -302,7 +337,7 @@ export default function CampaignCreate() {
       <PageHeader
         breadcrumb={breadcrumb}
         title="Création de campagne"
-        subtitle="Configurez une nouvelle campagne drive-to-store en 4 étapes"
+        subtitle="Configurez une nouvelle campagne drive-to-store en 5 étapes"
       />
 
       <Card className="p-5 sm:p-6">
@@ -313,7 +348,30 @@ export default function CampaignCreate() {
         {step === 0 && <StepGeneral {...stepProps} />}
         {step === 1 && <StepTargeting {...stepProps} />}
         {step === 2 && <StepFormats {...stepProps} />}
-        {step === 3 && <StepCategories {...stepProps} />}
+        {step === 3 && (
+          <div>
+            <div className="mb-4">
+              <h3 className="text-base font-semibold text-slate-900">
+                Magasins ciblés
+              </h3>
+              <p className="text-sm text-slate-400">
+                Importez la base client, sélectionnez les magasins à cibler et
+                réglez leur rayon de diffusion. Cette étape est optionnelle.
+              </p>
+            </div>
+            <StoreTargetingPanel
+              preview={storePreview}
+              onPreviewChange={setStorePreview}
+              selectedIds={storeSelectedIds}
+              onSelectionChange={setStoreSelectedIds}
+              radii={storeRadii}
+              onRadiiChange={setStoreRadii}
+            />
+          </div>
+        )}
+        {step === 4 && (
+          <StepCategories {...stepProps} selectedStores={selectedStores} />
+        )}
 
         {notice && (
           <div

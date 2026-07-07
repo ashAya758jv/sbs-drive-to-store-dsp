@@ -287,3 +287,73 @@ temps réel.
   persistance.
 - Le cercle est un rayon **circulaire simple** (pas de zones/polygones
   personnalisés).
+
+---
+
+## Jour 5 — Connexion au parcours de création de campagne
+
+### Objectif
+
+Relier l'écran **Magasins** au **formulaire de création de campagne** : une
+nouvelle étape permet de choisir les magasins ciblés (avec leur rayon), et ces
+données sont incluses dans le brouillon enregistré via l'API.
+
+### Fonctionnalités réalisées
+
+- **Refactorisation en composant réutilisable** : toute l'expérience
+  import + sélection + filtre ville + rayon + carte a été extraite dans
+  `frontend/src/components/stores/StoreTargetingPanel.jsx` (composant
+  **contrôlé** : le parent détient `preview`, `selectedIds`, `radii`). La page
+  Magasins (`StoreSelection.jsx`) devient un simple wrapper autour de ce
+  panneau — **comportement des Jours 1-4 inchangé**, zéro duplication.
+- **Nouvelle étape « Magasins ciblés »** dans le wizard (`CampaignCreate.jsx`),
+  désormais en **5 étapes** : Général → Ciblage technique → Formats →
+  **Magasins ciblés** → Catégories. L'étape réutilise `StoreTargetingPanel`
+  (donc `StoreMap`), permettant d'importer la base, de
+  **sélectionner/désélectionner** des magasins (liste + carte), de régler le
+  **rayon 1–20 km** par magasin et de voir le **compteur** « X sélectionné(s) ».
+- L'étape est **optionnelle** (aucune validation bloquante), pour ne pas casser
+  la création de campagne existante ni la sauvegarde de brouillon.
+- L'état des magasins (import, sélection, rayons) est **porté au niveau du
+  wizard**, donc il **persiste** quand on navigue entre les étapes.
+- **Résumé final** enrichi : la ligne « Magasins ciblés (N) » liste chaque
+  magasin sélectionné avec sa **ville** et son **rayon** (ex. *Marjane
+  Californie · Casablanca — 8 km*).
+- **Sauvegarde brouillon** : le `POST /api/campaigns/drafts` inclut désormais
+  `selected_stores` (`store_id`, `name`, `city`, `latitude`, `longitude`,
+  `radius_km`).
+
+### Schémas adaptés (backend)
+
+- Nouveau schéma Pydantic `SelectedStore` et champ `selected_stores:
+  list[SelectedStore] = []` sur `DraftBase` (donc `DraftCreate`/`DraftRead`).
+- Persistance : `selected_stores` est stocké dans la colonne **JSONB `payload`**
+  de `campaign_drafts` (ajout à `_PAYLOAD_KEYS`) — **aucune migration SQL
+  nécessaire**. Champ optionnel → **rétro-compatible** avec les brouillons
+  existants.
+
+### Correctif de robustesse (carte)
+
+- `StoreMap` utilise maintenant un **`ResizeObserver`** : la carte est
+  (re)dimensionnée et centrée dès que son conteneur obtient une taille réelle.
+  Cela corrige le cas où la carte est montée dans un conteneur de largeur nulle
+  (par ex. au moment où l'étape du wizard s'affiche), qui pouvait laisser la
+  carte vide.
+
+### Tests effectués
+
+- `npm run build` ✅ et `npm run lint` ✅ (0 warning).
+- Backend : roundtrip `selected_stores` (création + relecture) ✅, brouillon
+  sans magasins ✅ (rétro-compat).
+- Navigateur (parcours complet) : wizard 5 étapes → étape Magasins (import +
+  sélection + rayon 8 km + carte) → résumé listant le magasin →
+  **`POST /api/campaigns/drafts` → 201** avec `selected_stores` (rayon inclus).
+- Page Magasins autonome : import + sélection + rayons + carte toujours
+  fonctionnels après refactorisation.
+
+### État actuel et limites
+
+- Le brouillon **enregistre** bien les magasins et rayons ; l'exploitation
+  côté diffusion (ciblage réel) reste une étape ultérieure.
+- Pas encore de persistance de la BDD magasins elle-même : chaque parcours
+  ré-importe le fichier client (cohérent avec les Jours 1-4).
