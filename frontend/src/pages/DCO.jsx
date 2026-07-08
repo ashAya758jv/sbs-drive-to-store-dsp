@@ -9,6 +9,7 @@ import {
   Loader2,
   MapPin,
   Maximize2,
+  Monitor,
   RectangleHorizontal,
   Sparkles,
   Square,
@@ -186,6 +187,106 @@ function VariantCard({ variant }) {
   );
 }
 
+/** URL-friendly slug, for the simulated landing page address bar. */
+function slugify(text) {
+  return (text || "magasin")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+}
+
+/**
+ * Deterministic placeholder "distance" per store (1–12 km), purely for
+ * display — no real geolocation is used yet, hence "indicative estimate"
+ * wording everywhere this is shown.
+ */
+function estimateProximityKm(storeId) {
+  return (Number(storeId) * 7) % 12 + 1;
+}
+
+/**
+ * Simulated landing page for one store: hero visual, location block, and
+ * hours/contact block — a same-page preview only, no real public route.
+ */
+function LandingPagePreview({ store, variant }) {
+  const proximityKm = estimateProximityKm(store.id);
+  // The store_url values come from test/demo data (e.g. marjane.ma/californie)
+  // and often 404 in real life. Rather than navigate away to a broken page,
+  // "Voir la fiche magasin" reveals a simulated-link notice inline.
+  const [showLinkNotice, setShowLinkNotice] = useState(false);
+
+  return (
+    <Card className="overflow-hidden p-0">
+      {/* Fake browser bar, for a realistic landing-page feel */}
+      <div className="flex items-center gap-1.5 border-b border-slate-100 bg-slate-50 px-3 py-2">
+        <span className="h-2.5 w-2.5 rounded-full bg-rose-300" />
+        <span className="h-2.5 w-2.5 rounded-full bg-amber-300" />
+        <span className="h-2.5 w-2.5 rounded-full bg-emerald-300" />
+        <span className="ml-2 truncate text-xs text-slate-400">
+          landing.sbs-dsp.ma/{slugify(store.name)}
+        </span>
+      </div>
+
+      {/* Bloc 1 — visuel principal */}
+      <div className="relative grid h-48 place-items-center bg-slate-900">
+        <img
+          src={variant.previewUrl}
+          alt={store.name}
+          className="max-h-48 max-w-full object-contain"
+        />
+        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-4 pb-3 pt-8">
+          <Badge variant="primary" className="mb-1">
+            {variant.formatLabel}
+          </Badge>
+          <p className="truncate text-lg font-semibold text-white">{store.name}</p>
+        </div>
+      </div>
+
+      {/* Bloc 2 — carte / localisation */}
+      <div className="flex items-start gap-3 border-t border-slate-100 p-4">
+        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary-50 text-primary-600">
+          <MapPin className="h-4 w-4" />
+        </span>
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-slate-800">{store.address || "—"}</p>
+          <p className="text-xs text-slate-400">{store.city || "—"}</p>
+          <p className="mt-1 text-xs text-primary-700">
+            À environ {proximityKm} km de votre position (estimation indicative)
+          </p>
+        </div>
+      </div>
+
+      {/* Bloc 3 — horaires / contact */}
+      <div className="flex items-center justify-between gap-3 border-t border-slate-100 p-4">
+        <p className="flex items-center gap-2 text-sm text-slate-700">
+          <Clock className="h-4 w-4 shrink-0 text-slate-400" />
+          {store.opening_hours || "—"}
+        </p>
+        <Button
+          variant="secondary"
+          size="sm"
+          disabled={!store.store_url}
+          onClick={() => setShowLinkNotice((prev) => !prev)}
+        >
+          Voir la fiche magasin
+        </Button>
+      </div>
+
+      {showLinkNotice && store.store_url && (
+        <div className="flex items-start gap-2 border-t border-primary-100 bg-primary-50/60 px-4 py-3 text-xs text-primary-700">
+          <Link2 className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+          <p className="break-all">
+            <span className="font-medium">Lien magasin simulé pour la démo :</span>{" "}
+            {store.store_url}
+          </p>
+        </div>
+      )}
+    </Card>
+  );
+}
+
 export default function DCO() {
   const [options, setOptions] = useState(FALLBACK_OPTIONS);
   const [advertiserId, setAdvertiserId] = useState("");
@@ -203,6 +304,11 @@ export default function DCO() {
   const [variantNotice, setVariantNotice] = useState(null);
   const [compareStoreIdA, setCompareStoreIdA] = useState("");
   const [compareStoreIdB, setCompareStoreIdB] = useState("");
+
+  // Jour 3 — personalized landing page preview, per store.
+  const [previewStoreId, setPreviewStoreId] = useState("");
+  const [previewVariantId, setPreviewVariantId] = useState("");
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   const assetsRef = useRef(assets);
   useEffect(() => {
@@ -269,6 +375,9 @@ export default function DCO() {
     setVariantNotice(null);
     setCompareStoreIdA("");
     setCompareStoreIdB("");
+    setPreviewStoreId("");
+    setPreviewVariantId("");
+    setPreviewOpen(false);
   };
 
   // Revoke every remaining object URL when the page unmounts.
@@ -407,6 +516,17 @@ export default function DCO() {
       uniqueStores[1] ? String(uniqueStores[1].id) : uniqueStores[0] ? String(uniqueStores[0].id) : "",
     );
 
+    // Jour 3 — default the landing-page preview to the first store, using
+    // its first generated visual. A fresh generation always closes any
+    // previously open preview (it may reference now-stale variant ids).
+    const firstStore = uniqueStores[0];
+    const firstVariant = firstStore
+      ? generated.find((v) => v.store.id === firstStore.id)
+      : null;
+    setPreviewStoreId(firstStore ? String(firstStore.id) : "");
+    setPreviewVariantId(firstVariant ? firstVariant.id : "");
+    setPreviewOpen(false);
+
     setVariantNotice({
       type: "success",
       message: `${generated.length} variante${generated.length > 1 ? "s" : ""} générée${generated.length > 1 ? "s" : ""} avec succès.`,
@@ -423,6 +543,33 @@ export default function DCO() {
   }));
   const variantsForStore = (storeId) =>
     variants.filter((variant) => String(variant.store.id) === String(storeId));
+
+  /* ------------------- Jour 3 — landing page previews ------------------- */
+
+  // Only stores with at least one generated variant can have a landing page.
+  const landingStores = uniqueVariantStores;
+  const landingStoreOptions = storeCompareOptions;
+
+  const previewVariantsForStore = variantsForStore(previewStoreId);
+  const activePreviewVariant =
+    previewVariantsForStore.find((v) => v.id === previewVariantId) ??
+    previewVariantsForStore[0] ??
+    null;
+  const previewStore =
+    landingStores.find((store) => String(store.id) === String(previewStoreId)) ?? null;
+
+  /** Jump the preview to a given store, defaulting to its first visual. */
+  const selectPreviewStore = (storeId) => {
+    const firstVariant = variantsForStore(storeId)[0];
+    setPreviewStoreId(storeId);
+    setPreviewVariantId(firstVariant ? firstVariant.id : "");
+  };
+
+  /** "Prévisualiser la landing page" — selects the store (if needed) and opens the preview. */
+  const openLandingPreview = (storeId) => {
+    selectPreviewStore(storeId);
+    setPreviewOpen(true);
+  };
 
   return (
     <>
@@ -628,6 +775,122 @@ export default function DCO() {
           </div>
         </Card>
       )}
+
+      {/* Jour 3 — personalized landing pages per store */}
+      <Card className="mt-6 p-5 sm:p-6">
+        <div className="mb-4">
+          <h2 className="text-base font-semibold text-slate-900">
+            Landing pages personnalisées
+          </h2>
+          <p className="text-sm text-slate-400">
+            Une landing page est simulée automatiquement pour chaque magasin,
+            à partir de ses champs dynamiques et du premier visuel disponible.
+          </p>
+        </div>
+
+        {landingStores.length === 0 ? (
+          <p className="rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            Générez d'abord les variantes (bouton ci-dessus) pour créer les
+            landing pages par magasin.
+          </p>
+        ) : (
+          <>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+              <Select
+                label="Magasin à prévisualiser"
+                value={previewStoreId}
+                onChange={(e) => selectPreviewStore(e.target.value)}
+                options={landingStoreOptions}
+                className="w-64"
+              />
+              <Button
+                onClick={() => openLandingPreview(previewStoreId)}
+                disabled={!previewStoreId}
+              >
+                <Monitor className="h-4 w-4" />
+                Prévisualiser la landing page
+              </Button>
+            </div>
+
+            {/* Visual picker — only shown when this store has more than one format */}
+            {previewVariantsForStore.length > 1 && (
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <span className="text-xs font-medium text-slate-500">
+                  Visuel affiché :
+                </span>
+                {previewVariantsForStore.map((variant) => (
+                  <button
+                    key={variant.id}
+                    type="button"
+                    onClick={() => setPreviewVariantId(variant.id)}
+                    className={cn(
+                      "rounded-full px-3 py-1 text-xs font-medium transition-colors",
+                      variant.id === activePreviewVariant?.id
+                        ? "bg-primary-600 text-white"
+                        : "bg-slate-100 text-slate-600 hover:bg-slate-200",
+                    )}
+                  >
+                    {variant.formatLabel}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Inline preview (same-page — no real public route yet) */}
+            {previewOpen && previewStore && activePreviewVariant && (
+              <div className="mt-5 max-w-md">
+                <LandingPagePreview
+                  key={previewStore.id}
+                  store={previewStore}
+                  variant={activePreviewVariant}
+                />
+              </div>
+            )}
+
+            {/* Gallery / listing of every generated landing page */}
+            <div className="mt-6">
+              <h3 className="mb-3 text-sm font-semibold text-slate-800">
+                Toutes les landing pages générées ({landingStores.length})
+              </h3>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {landingStores.map((store) => {
+                  const firstVariant = variantsForStore(store.id)[0];
+                  return (
+                    <Card key={store.id} className="overflow-hidden p-0">
+                      <div className="grid h-28 place-items-center bg-slate-50">
+                        {firstVariant && (
+                          <img
+                            src={firstVariant.previewUrl}
+                            alt={store.name}
+                            className="max-h-28 max-w-full object-contain"
+                          />
+                        )}
+                      </div>
+                      <div className="p-3">
+                        <p className="truncate text-sm font-semibold text-slate-900">
+                          {store.name}
+                        </p>
+                        <p className="flex items-center gap-1 text-xs text-slate-400">
+                          <MapPin className="h-3 w-3" />
+                          {store.city}
+                        </p>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          className="mt-3 w-full"
+                          onClick={() => openLandingPreview(store.id)}
+                        >
+                          Prévisualiser la landing page
+                        </Button>
+                      </div>
+                    </Card>
+                  );
+                })}
+              </div>
+            </div>
+          </>
+        )}
+      </Card>
     </>
   );
 }
