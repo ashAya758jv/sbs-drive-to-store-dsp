@@ -9,6 +9,7 @@ from app.routes import (
     advertisers,
     campaign_creation,
     campaigns,
+    dco,
     health,
     statistics,
     store_import,
@@ -24,6 +25,7 @@ api_router.include_router(stores.router)
 api_router.include_router(store_import.router)
 api_router.include_router(campaigns.router)
 api_router.include_router(campaign_creation.router)
+api_router.include_router(dco.router)
 api_router.include_router(statistics.router)
 
 __all__ = ["api_router"]
