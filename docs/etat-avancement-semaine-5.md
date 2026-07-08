@@ -385,3 +385,114 @@ démo. Le bouton **ne navigue plus jamais** hors de l'application :
   à partir des variantes actuellement en mémoire.
 - Pas de vraie URL publique : la barre d'adresse affichée est un habillage
   visuel, pas un lien fonctionnel.
+
+---
+
+## Jour 4 — Écran Reporting (KPI + graphiques)
+
+### Objectif
+
+Remplacer le placeholder de la page **Reporting** par un vrai tableau de bord
+de reporting : indicateurs clés, courbe d'évolution quotidienne, comparaison
+par campagne/ville et synthèse textuelle automatique, filtrable par période,
+campagne et ville/magasin.
+
+### Fonctionnalités réalisées
+
+**Filtres (en haut de page, dans le `PageHeader`)**
+- **Période** : « 7 derniers jours » / « 30 derniers jours » / « Ce mois »
+  (mois calendaire en cours, du 1ᵉʳ jour à aujourd'hui).
+- **Campagne** : « Toutes les campagnes » + les 4 campagnes déjà connues de
+  l'application (mêmes noms que sur le Dashboard).
+- **Ville / magasin** : « Toutes les villes » + la liste réelle des villes
+  issues de `GET /api/stores` (endpoint déjà existant, réutilisé tel quel —
+  aucune modification backend), avec repli sur une liste statique
+  (Casablanca, Rabat, Fès) si l'API est injoignable.
+
+**4 cartes KPI** (même style que le Dashboard : icône violette, badge de
+variation vert/rouge) — **Impressions**, **Clics**, **CTR**, **Budget
+dépensé** — chacune avec sa variation en pourcentage par rapport à la période
+comparable précédente (ex. 30 derniers jours vs les 30 jours d'avant).
+
+**Graphique en courbe** — évolution quotidienne des impressions (axe gauche)
+et des clics (axe droit) sur la période filtrée, même langage visuel que le
+graphique du Dashboard (tooltip personnalisé, couleurs de la charte).
+
+**Graphique en barres, adaptatif** :
+- Si « Toutes les campagnes » est sélectionné → compare les **campagnes**
+  entre elles (impressions + clics).
+- Si une **campagne précise** est sélectionnée → bascule automatiquement sur
+  une comparaison **par ville/magasin** de cette campagne (comparer une
+  campagne à elle-même n'aurait pas de sens) — le titre du bloc s'adapte en
+  conséquence.
+
+**Bloc de synthèse textuelle** (« Principaux enseignements ») : 3 à 4 phrases
+générées à partir des données déjà calculées (pas de texte inventé) :
+variation des impressions vs période précédente, CTR moyen et budget
+dépensé, campagne la plus performante (masqué si une seule campagne est déjà
+filtrée, car redondant), ville générant le plus de clics.
+
+### Données mockées
+
+Nouveau fichier `frontend/src/data/reportingData.js` : génère, une seule fois
+au chargement du module, **90 jours** de données quotidiennes par campagne et
+par ville (impressions, clics, dépense), avec un générateur pseudo-aléatoire
+**déterministe** (les chiffres restent stables tant que la page n'est pas
+totalement rechargée) ancré sur la **vraie date du jour** — les filtres « 7 /
+30 derniers jours » et « Ce mois » restent donc pertinents à n'importe quel
+moment futur, sans données qui deviennent obsolètes. Les villes par campagne
+reprennent exactement la répartition des magasins mockés du backend (Marjane
+→ Casablanca + Rabat, Carrefour/BIM → Casablanca, CIH → Rabat).
+
+### Recharts
+
+**Déjà installé** (`recharts` `^3.9.0` dans `package.json`) — **aucune
+nouvelle dépendance ajoutée**. Deux nouveaux composants de graphique,
+`frontend/src/components/charts/ReportingTrendChart.jsx` et
+`ReportingBarChart.jsx`, ajoutés à côté du `PerformanceChart.jsx` existant
+plutôt que de le modifier, pour garantir que le Dashboard n'est jamais
+touché.
+
+### Choix technique : aucune modification des fichiers partagés
+
+- `Dashboard.jsx`, `PerformanceChart.jsx` et `mockData.js` n'ont **pas été
+  modifiés**. Le composant `KpiCard` et la logique de filtre sont dupliqués
+  localement dans `Reporting.jsx` (comme les sous-composants de `DCO.jsx`),
+  pour éliminer tout risque de régression sur le Dashboard.
+- Seul appel réseau : `GET /api/stores` (déjà utilisé par `/magasins` et
+  `/dco`), en lecture seule, avec repli local si indisponible.
+
+### Tests effectués
+
+- `npm run build` ✅ et `npm run lint` ✅ (0 warning).
+- Navigateur : les 4 KPI, la courbe, le graphique en barres et la synthèse
+  s'affichent avec des données cohérentes (ex. 1,6M impressions / 14 495
+  clics / 0,90 % CTR / 30 606 MAD sur 30 jours, toutes campagnes confondues).
+- Sélection d'une campagne unique (Marjane Ramadan 2026) → le graphique en
+  barres bascule sur « Performance par ville / magasin » (Casablanca / Rabat)
+  et l'enseignement « campagne la plus performante » disparaît (redondant).
+- Filtre Ville/magasin alimenté par les vraies données de `GET /api/stores`.
+- Dashboard, Campagnes, Magasins, Créations/DCO, création de campagne
+  vérifiés inchangés après ces ajouts.
+
+### Ce qui est fait / ce qu'il reste à faire
+
+**Fait (Jour 4)**
+- Dashboard reporting complet : 4 KPI, courbe quotidienne, barres
+  comparatives adaptatives, synthèse textuelle.
+- Filtres période / campagne / ville-magasin.
+- Données mockées réalistes, ancrées sur la date réelle.
+
+**Reste à faire (Jour 5, cf. instructions)**
+- Export CSV des données de reporting.
+- Carte géographique de reporting (visites par magasin).
+
+### Limites actuelles (Jour 4)
+
+- Les données sont **entièrement mockées** (générées côté frontend, aucune
+  connexion à une vraie base de données ou aux statistiques réelles des
+  campagnes).
+- Le filtre Ville/magasin ne permet pas encore de sélectionner un **magasin
+  précis** (seulement sa ville) — un filtre plus granulaire pourra être
+  ajouté plus tard si nécessaire.
+- Pas d'export ni de carte géographique à ce stade (prévus Jour 5).
