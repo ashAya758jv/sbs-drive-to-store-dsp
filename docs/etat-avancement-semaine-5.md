@@ -242,3 +242,146 @@ changement d'annonceur.
 - Pas de pagination de la galerie : au-delà de quelques dizaines de
   combinaisons (beaucoup de magasins × formats), l'affichage restera
   fonctionnel mais pourra être densifié plus tard.
+
+---
+
+## Jour 3 — Landing page personnalisée par magasin (bloc 4.2)
+
+### Objectif
+
+Simuler, pour chaque magasin ayant au moins une variante générée (Jour 2),
+une **landing page personnalisée** combinant son visuel publicitaire et ses
+champs dynamiques (nom, ville, adresse, horaires, URL), avec une
+prévisualisation directement dans la page `/dco` (pas de nouvelle route
+publique pour l'instant).
+
+### Génération automatique par magasin
+
+- Une landing page est disponible pour **chaque magasin ayant au moins une
+  variante générée** (réutilise directement `variants`, produit du Jour 2 —
+  aucun nouvel appel réseau, aucune nouvelle dépendance backend).
+- Le **visuel** de la landing page est, par défaut, la **première variante
+  disponible** pour ce magasin ; si plusieurs formats ont été générés pour ce
+  magasin (ex. bannière **et** interstitiel), une rangée de **pastilles de
+  sélection** permet de choisir explicitement le visuel à afficher
+  (« Visuel affiché : Bannière / Interstitiel »).
+- Les champs dynamiques injectés sont exactement ceux du magasin : nom,
+  ville, adresse, horaires, URL.
+
+### Les 3 blocs de la landing page
+
+1. **Bloc visuel principal** — image publicitaire (aperçu local du visuel
+   choisi) avec un badge du format et le **nom du magasin** en superposition.
+2. **Bloc carte/localisation** — icône de localisation, **adresse** et
+   **ville**, plus une **indication de proximité simulée** (« À environ X km
+   de votre position (estimation indicative) », valeur illustrative
+   déterministe par magasin — aucune géolocalisation réelle n'est utilisée,
+   conformément à la consigne « pas besoin de vraie IA »).
+3. **Bloc horaires/contact** — les **horaires** d'ouverture et un bouton
+   **« Voir la fiche magasin »**. Ce bouton **ne navigue pas** vers l'URL
+   réelle du magasin (voir « Correctif » ci-dessous) : il affiche un message
+   inline « Lien magasin simulé pour la démo : *URL* » directement sous le
+   bouton, sans quitter la page.
+
+Une petite barre de navigateur factice (points de couleur + URL simulée
+`landing.sbs-dsp.ma/<slug-du-magasin>`) donne un rendu proche d'une vraie page
+web, sans qu'aucune route publique ne soit réellement créée.
+
+### Sélecteur et bouton de prévisualisation
+
+- **Sélecteur « Magasin à prévisualiser »** (menu déroulant listant tous les
+  magasins ayant une landing page disponible).
+- Bouton **« Prévisualiser la landing page »** : ouvre l'aperçu **dans la même
+  page** (pas de navigation, pas de nouvel onglet) pour le magasin
+  actuellement sélectionné.
+- Choisir un autre magasin dans le sélecteur met à jour le contenu si
+  l'aperçu est déjà ouvert.
+
+### Galerie / listing des landing pages générées
+
+- Section **« Toutes les landing pages générées (N) »** : une carte compacte
+  par magasin (miniature du visuel, nom, ville) avec son propre bouton
+  **« Prévisualiser la landing page »**, qui ouvre directement l'aperçu
+  détaillé pour ce magasin. Complète le sélecteur du dessus par un accès plus
+  visuel/parcourable.
+
+### État de validation (UX)
+
+- Si aucune variante n'a encore été générée, un message clair invite à
+  générer les variantes d'abord (« Générez d'abord les variantes... »),
+  cohérent avec le message équivalent du Jour 2.
+- Changer d'annonceur réinitialise la prévisualisation (magasin, visuel
+  choisi, aperçu ouvert/fermé), pour rester cohérent avec la remise à zéro
+  déjà appliquée aux visuels et aux variantes.
+- Régénérer les variantes referme l'aperçu ouvert (évite de référencer un
+  visuel qui vient d'être remplacé) et re-sélectionne le premier magasin
+  disponible par défaut.
+
+### Choix technique : aucune modification backend
+
+Comme pour le Jour 2, la génération de landing pages ne fait que combiner des
+données déjà disponibles côté frontend (`variants`, lui-même dérivé de
+`GET /api/stores` et des visuels déjà enregistrés) : aucun fichier backend
+n'a été modifié pour le Jour 3.
+
+### Correctif : bouton « Voir la fiche magasin » simulé (évite les 404 en démo)
+
+Les `store_url` viennent des données de test (ex. `marjane.ma/californie`) et
+ne correspondent pas à de vraies pages en ligne : cliquer dessus pouvait faire
+quitter l'application vers une page **404**, ce qui est trompeur pendant une
+démo. Le bouton **ne navigue plus jamais** hors de l'application :
+
+- Au clic, il affiche/masque (bascule) un encart discret directement sous le
+  bouton, dans la même carte : **« Lien magasin simulé pour la démo : *URL*
+  »** — l'URL est visible mais **aucune navigation automatique** n'est
+  déclenchée.
+- Le bouton reste **visible et actif** (il représente bien la fonctionnalité
+  attendue), seul son comportement au clic a changé.
+- L'encart se réinitialise proprement quand on change de magasin prévisualisé
+  (aucun message obsolète affiché pour le mauvais magasin).
+- Design cohérent : encart violet clair (`bg-primary-50/60`), même famille de
+  couleurs que le reste de la landing page simulée.
+
+### Tests effectués
+
+- `npm run build` ✅ et `npm run lint` ✅ (0 warning).
+- Navigateur (annonceur Marjane, 2 magasins) : après génération des variantes,
+  la section « Landing pages personnalisées » affiche le sélecteur, le bouton
+  de prévisualisation, les pastilles de visuel (Bannière/Interstitiel) et la
+  galerie (2 cartes).
+- Clic sur « Prévisualiser la landing page » → les 3 blocs s'affichent avec
+  les bonnes données (nom, adresse, ville, horaires, bouton « Voir la fiche
+  magasin »).
+- Changement de magasin via la galerie (Californie → Hay Riad) → contenu mis
+  à jour correctement (adresse, ville, distance simulée différente : 8 km vs
+  3 km), confirmant que chaque magasin a bien sa propre landing page.
+- Clic sur « Voir la fiche magasin » → message « Lien magasin simulé pour la
+  démo : https://www.marjane.ma/californie » affiché **sans navigation**
+  (l'URL de la page reste `/dco`) ; re-clic → message masqué (bascule) ;
+  changement de magasin → message correctement réinitialisé.
+- Dashboard, Campagnes, Magasins, création de campagne vérifiés inchangés.
+
+### Ce qui est fait / ce qu'il reste à faire
+
+**Fait (Jour 3)**
+- Génération automatique d'une landing page simulée par magasin.
+- Les 3 blocs requis (visuel, localisation, horaires/contact).
+- Sélecteur de magasin + bouton de prévisualisation inline.
+- Galerie/listing de toutes les landing pages générées.
+
+**Reste à faire (prochains jours)**
+- Vraie route publique par landing page (actuellement prévisualisation
+  intra-page uniquement, par choix explicite du Jour 3).
+- Géolocalisation réelle pour l'indication de proximité (actuellement
+  simulée).
+- Persistance des landing pages générées côté backend.
+
+### Limites actuelles (Jour 3)
+
+- L'indication de proximité est **entièrement simulée** (valeur déterministe
+  par identifiant de magasin), clairement libellée « estimation indicative »
+  pour éviter toute confusion avec une vraie géolocalisation.
+- Aucune landing page n'est **persistée** : tout est recalculé à la demande
+  à partir des variantes actuellement en mémoire.
+- Pas de vraie URL publique : la barre d'adresse affichée est un habillage
+  visuel, pas un lien fonctionnel.
