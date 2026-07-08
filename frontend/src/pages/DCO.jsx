@@ -2,11 +2,15 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
   CheckCircle2,
+  Clock,
   FileImage,
   Info,
+  Link2,
   Loader2,
+  MapPin,
   Maximize2,
   RectangleHorizontal,
+  Sparkles,
   Square,
   Upload,
 } from "lucide-react";
@@ -130,10 +134,62 @@ function FormatUploadCard({ format, asset, onFileChange }) {
   );
 }
 
+/**
+ * One generated variant: a format's visual combined with a single store's
+ * dynamic fields (name, city, address, opening_hours, store_url).
+ */
+function VariantCard({ variant }) {
+  return (
+    <Card className="overflow-hidden p-0">
+      <div className="grid h-32 place-items-center border-b border-slate-100 bg-slate-50">
+        <img
+          src={variant.previewUrl}
+          alt={`${variant.formatLabel} — ${variant.store.name}`}
+          className="max-h-32 max-w-full object-contain"
+        />
+      </div>
+      <div className="p-3">
+        <div className="flex items-center justify-between gap-2">
+          <Badge variant="primary">{variant.formatLabel}</Badge>
+          <span className="inline-flex items-center gap-1 text-xs text-slate-400">
+            <MapPin className="h-3 w-3" />
+            {variant.store.city || "—"}
+          </span>
+        </div>
+        <p className="mt-2 truncate text-sm font-semibold text-slate-900">
+          {variant.store.name}
+        </p>
+        <div className="mt-2 space-y-1 text-xs text-slate-500">
+          {variant.store.address && (
+            <p className="truncate">{variant.store.address}</p>
+          )}
+          {variant.store.opening_hours && (
+            <p className="flex items-center gap-1 truncate">
+              <Clock className="h-3 w-3 shrink-0" />
+              {variant.store.opening_hours}
+            </p>
+          )}
+          {variant.store.store_url && (
+            <a
+              href={variant.store.store_url}
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center gap-1 truncate text-primary-700 hover:underline"
+            >
+              <Link2 className="h-3 w-3 shrink-0" />
+              {variant.store.store_url}
+            </a>
+          )}
+        </div>
+      </div>
+    </Card>
+  );
+}
+
 export default function DCO() {
   const [options, setOptions] = useState(FALLBACK_OPTIONS);
   const [advertiserId, setAdvertiserId] = useState("");
-  const [dynamicStore, setDynamicStore] = useState(GENERIC_EXAMPLE_STORE);
+  const [advertiserStores, setAdvertiserStores] = useState([]);
   const [assets, setAssets] = useState({
     banner: { ...EMPTY_ASSET },
     rectangle: { ...EMPTY_ASSET },
@@ -141,6 +197,12 @@ export default function DCO() {
   });
   const [submitting, setSubmitting] = useState(false);
   const [notice, setNotice] = useState(null);
+
+  // Jour 2 — generated variants (format × store) and the "compare 2 stores" picker.
+  const [variants, setVariants] = useState([]);
+  const [variantNotice, setVariantNotice] = useState(null);
+  const [compareStoreIdA, setCompareStoreIdA] = useState("");
+  const [compareStoreIdB, setCompareStoreIdB] = useState("");
 
   const assetsRef = useRef(assets);
   useEffect(() => {
@@ -161,25 +223,53 @@ export default function DCO() {
   }, []);
 
   // Pre-fill the "champs dynamiques client" from the client store DB, once an
-  // advertiser is known. Falls back to a generic example if unavailable.
+  // advertiser is known — and keep the full store list (not just the first
+  // match) so the Jour 2 variant generation can use every store available.
   useEffect(() => {
     if (!advertiserId) return undefined;
     let active = true;
     apiGet("/stores")
       .then((stores) => {
         if (!active) return;
-        const match = stores.find(
+        const matches = stores.filter(
           (store) => String(store.advertiser_id) === String(advertiserId),
         );
-        setDynamicStore(match ?? GENERIC_EXAMPLE_STORE);
+        setAdvertiserStores(matches);
       })
       .catch(() => {
-        if (active) setDynamicStore(GENERIC_EXAMPLE_STORE);
+        if (active) setAdvertiserStores([]);
       });
     return () => {
       active = false;
     };
   }, [advertiserId]);
+
+  const dynamicStore = advertiserStores[0] ?? GENERIC_EXAMPLE_STORE;
+
+  /**
+   * Switching advertiser resets the uploaded visuals and any generated
+   * variants — both are scoped to one advertiser, so nothing saved for the
+   * previous one should silently carry over and get mixed with the new
+   * advertiser's stores.
+   */
+  const handleAdvertiserChange = (value) => {
+    setAdvertiserId(value);
+    setAssets((prev) => {
+      Object.values(prev).forEach((asset) => {
+        if (asset.previewUrl) URL.revokeObjectURL(asset.previewUrl);
+      });
+      return {
+        banner: { ...EMPTY_ASSET },
+        rectangle: { ...EMPTY_ASSET },
+        interstitial: { ...EMPTY_ASSET },
+      };
+    });
+    setNotice(null);
+    setVariants([]);
+    setVariantNotice(null);
+    setCompareStoreIdA("");
+    setCompareStoreIdB("");
+  };
 
   // Revoke every remaining object URL when the page unmounts.
   useEffect(() => {
@@ -220,6 +310,10 @@ export default function DCO() {
         },
       };
     });
+    // Any variant generated from this format used the previous blob preview,
+    // which is about to be revoked/replaced — drop it so the gallery never
+    // shows a broken image.
+    setVariants((prev) => prev.filter((variant) => variant.formatValue !== formatValue));
   };
 
   const readyFormats = useMemo(
@@ -267,6 +361,69 @@ export default function DCO() {
     { label: "URL du magasin", value: dynamicStore.store_url },
   ];
 
+  /* --------------------- Jour 2 — variant generation --------------------- */
+
+  // Visuals actually saved (not just locally "ready") — each still holds its
+  // local blob preview, which is the only real image data available (no file
+  // is ever persisted server-side, see dco_service.py).
+  const uploadedAssets = useMemo(
+    () => Object.entries(assets).filter(([, asset]) => asset.status === "uploaded"),
+    [assets],
+  );
+
+  const canGenerate = uploadedAssets.length > 0 && advertiserStores.length > 0;
+  const variantCountPreview = uploadedAssets.length * advertiserStores.length;
+
+  const generateHint = (() => {
+    if (uploadedAssets.length === 0) {
+      return "Enregistrez au moins un visuel ci-dessus avant de générer les variantes.";
+    }
+    if (advertiserStores.length === 0) {
+      return "Aucun magasin disponible pour cet annonceur — importez des magasins avant de générer les variantes.";
+    }
+    return `${uploadedAssets.length} visuel${uploadedAssets.length > 1 ? "s" : ""} × ${advertiserStores.length} magasin${advertiserStores.length > 1 ? "s" : ""} = ${variantCountPreview} variante${variantCountPreview > 1 ? "s" : ""} seront générées.`;
+  })();
+
+  const handleGenerateVariants = () => {
+    if (!canGenerate) return;
+    const generated = [];
+    uploadedAssets.forEach(([formatValue, asset]) => {
+      const format = options.formats.find((f) => f.value === formatValue);
+      advertiserStores.forEach((store) => {
+        generated.push({
+          id: `${formatValue}-${store.id}`,
+          formatValue,
+          formatLabel: format?.label ?? formatValue,
+          previewUrl: asset.previewUrl,
+          store,
+        });
+      });
+    });
+    setVariants(generated);
+
+    const uniqueStores = [...new Map(generated.map((v) => [v.store.id, v.store])).values()];
+    setCompareStoreIdA(uniqueStores[0] ? String(uniqueStores[0].id) : "");
+    setCompareStoreIdB(
+      uniqueStores[1] ? String(uniqueStores[1].id) : uniqueStores[0] ? String(uniqueStores[0].id) : "",
+    );
+
+    setVariantNotice({
+      type: "success",
+      message: `${generated.length} variante${generated.length > 1 ? "s" : ""} générée${generated.length > 1 ? "s" : ""} avec succès.`,
+    });
+  };
+
+  const uniqueVariantStores = useMemo(
+    () => [...new Map(variants.map((v) => [v.store.id, v.store])).values()],
+    [variants],
+  );
+  const storeCompareOptions = uniqueVariantStores.map((store) => ({
+    value: String(store.id),
+    label: `${store.name} · ${store.city}`,
+  }));
+  const variantsForStore = (storeId) =>
+    variants.filter((variant) => String(variant.store.id) === String(storeId));
+
   return (
     <>
       <PageHeader
@@ -289,7 +446,7 @@ export default function DCO() {
           <Select
             label="Annonceur"
             value={advertiserId}
-            onChange={(e) => setAdvertiserId(e.target.value)}
+            onChange={(e) => handleAdvertiserChange(e.target.value)}
             options={options.advertisers}
             className="w-48"
           />
@@ -372,6 +529,105 @@ export default function DCO() {
           </div>
         )}
       </Card>
+
+      {/* Jour 2 — automatic variant generation */}
+      <Card className="mt-6 p-5 sm:p-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm font-medium text-slate-800">
+              Génération automatique des variantes
+            </p>
+            <p className="mt-0.5 text-xs text-slate-400">{generateHint}</p>
+          </div>
+          <Button onClick={handleGenerateVariants} disabled={!canGenerate}>
+            <Sparkles className="h-4 w-4" />
+            Générer toutes les variantes
+          </Button>
+        </div>
+
+        {variantNotice && (
+          <div
+            className={cn(
+              "mt-4 rounded-lg px-4 py-3 text-sm",
+              variantNotice.type === "success"
+                ? "bg-emerald-50 text-emerald-700"
+                : "bg-rose-50 text-rose-700",
+            )}
+          >
+            {variantNotice.message}
+          </div>
+        )}
+      </Card>
+
+      {/* Side-by-side comparison of 2 stores */}
+      {variants.length > 0 && (
+        <Card className="mt-6 p-5 sm:p-6">
+          <div className="mb-4">
+            <h2 className="text-base font-semibold text-slate-900">
+              Comparaison par magasin
+            </h2>
+            <p className="text-sm text-slate-400">
+              Comparez le rendu des créatives générées entre deux magasins
+              différents.
+            </p>
+          </div>
+
+          {uniqueVariantStores.length < 2 ? (
+            <p className="rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              La comparaison nécessite au moins 2 magasins pour cet annonceur.
+              Un seul magasin est disponible actuellement.
+            </p>
+          ) : (
+            <>
+              <div className="mb-4 grid gap-3 sm:grid-cols-2">
+                <Select
+                  label="Magasin A"
+                  value={compareStoreIdA}
+                  onChange={(e) => setCompareStoreIdA(e.target.value)}
+                  options={storeCompareOptions}
+                />
+                <Select
+                  label="Magasin B"
+                  value={compareStoreIdB}
+                  onChange={(e) => setCompareStoreIdB(e.target.value)}
+                  options={storeCompareOptions}
+                />
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                {[compareStoreIdA, compareStoreIdB].map((storeId, index) => (
+                  <div key={`${storeId}-${index}`}>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      {variantsForStore(storeId).map((variant) => (
+                        <VariantCard key={variant.id} variant={variant} />
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </Card>
+      )}
+
+      {/* Full gallery of generated variants */}
+      {variants.length > 0 && (
+        <Card className="mt-6 p-5 sm:p-6">
+          <div className="mb-4">
+            <h2 className="text-base font-semibold text-slate-900">
+              Galerie des variantes ({variants.length})
+            </h2>
+            <p className="text-sm text-slate-400">
+              Toutes les combinaisons visuel × magasin générées pour cet
+              annonceur.
+            </p>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {variants.map((variant) => (
+              <VariantCard key={variant.id} variant={variant} />
+            ))}
+          </div>
+        </Card>
+      )}
     </>
   );
 }
