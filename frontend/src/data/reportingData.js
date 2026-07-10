@@ -29,6 +29,43 @@ const CAMPAIGN_CITIES = {
 /** Fallback city list (used only if GET /api/stores is unreachable). */
 export const FALLBACK_CITIES = ["Casablanca", "Rabat", "Fès"];
 
+/** Maps a store's advertiser to the mock campaign that targets it (Jour 5). */
+const ADVERTISER_TO_CAMPAIGN = {
+  1: "camp-1", // Marjane
+  2: "camp-2", // Carrefour
+  3: "camp-3", // BIM
+  4: "camp-4", // CIH Bank
+};
+
+/** Fallback store list (used only if GET /api/stores is unreachable) —
+ *  mirrors the backend's mock store DB exactly, so the map/table stay
+ *  consistent whether the API is up or not. */
+export const FALLBACK_STORES = [
+  { id: 1, advertiser_id: 1, name: "Marjane Californie", city: "Casablanca", latitude: 33.5298, longitude: -7.6512 },
+  { id: 2, advertiser_id: 1, name: "Marjane Hay Riad", city: "Rabat", latitude: 33.956, longitude: -6.867 },
+  { id: 3, advertiser_id: 2, name: "Carrefour Anfa Place", city: "Casablanca", latitude: 33.602, longitude: -7.67 },
+  { id: 4, advertiser_id: 3, name: "BIM Maârif", city: "Casablanca", latitude: 33.587, longitude: -7.633 },
+  { id: 5, advertiser_id: 4, name: "CIH Bank Agdal", city: "Rabat", latitude: 33.992, longitude: -6.849 },
+];
+
+/** Diffusion radii used across the mock stores (km) — deterministic per store. */
+const RADIUS_STEPS_KM = [5, 10, 15];
+export function getStoreRadiusKm(storeId) {
+  return RADIUS_STEPS_KM[Number(storeId) % RADIUS_STEPS_KM.length];
+}
+
+// Deterministic per-store "visit rate" (share of clicks converting into an
+// estimated in-store visit). Each store is seeded independently (777 + id)
+// so the value never depends on call order — only on the store's own id.
+const visitRateCache = new Map();
+function getVisitRate(storeId) {
+  if (!visitRateCache.has(storeId)) {
+    const rand = seededRandom(777 + Number(storeId));
+    visitRateCache.set(storeId, 0.25 + rand() * 0.2); // ~25%–45% of clicks
+  }
+  return visitRateCache.get(storeId);
+}
+
 export const PERIOD_OPTIONS = [
   { value: "7d", label: "7 derniers jours" },
   { value: "30d", label: "30 derniers jours" },
@@ -178,4 +215,45 @@ export function groupByKey(rows, key) {
 export function formatShortDate(dateIso) {
   const date = new Date(`${dateIso}T00:00:00`);
   return date.toLocaleDateString("fr-FR", { day: "2-digit", month: "short" });
+}
+
+/**
+ * Build one row per store (Jour 5 — map + detailed table) by attributing the
+ * already period/campaign/city-filtered daily rows to the single store that
+ * matches each (campaign, city) pair. This reuses the exact same filtered
+ * dataset as the KPIs/charts above, so the map and table always stay
+ * consistent with the rest of the page's active filters.
+ */
+export function buildStoreRows(filteredRows, stores) {
+  return stores
+    .map((store) => {
+      const campaignId = ADVERTISER_TO_CAMPAIGN[store.advertiser_id];
+      if (!campaignId) return null;
+
+      const rowsForStore = filteredRows.filter(
+        (row) => row.campaignId === campaignId && row.city === store.city,
+      );
+      if (rowsForStore.length === 0) return null;
+
+      const totals = sumRows(rowsForStore);
+      const ctr = totals.impressions > 0 ? (totals.clicks / totals.impressions) * 100 : 0;
+      const campaign = REPORTING_CAMPAIGNS.find((c) => c.value === campaignId);
+
+      return {
+        storeId: store.id,
+        storeName: store.name,
+        city: store.city,
+        latitude: store.latitude,
+        longitude: store.longitude,
+        campaignId,
+        campaignLabel: campaign?.label ?? campaignId,
+        radiusKm: getStoreRadiusKm(store.id),
+        impressions: totals.impressions,
+        clicks: totals.clicks,
+        ctr,
+        spend: totals.spend,
+        visits: Math.round(totals.clicks * getVisitRate(store.id)),
+      };
+    })
+    .filter(Boolean);
 }
