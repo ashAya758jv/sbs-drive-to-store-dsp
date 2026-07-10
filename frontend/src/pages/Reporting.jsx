@@ -13,13 +13,17 @@ import Card from "../components/ui/Card";
 import Select from "../components/ui/Select";
 import ReportingTrendChart from "../components/charts/ReportingTrendChart";
 import ReportingBarChart from "../components/charts/ReportingBarChart";
-import { chartColors } from "../styles/theme";
+import ReportingZonesMap from "../components/reporting/ReportingZonesMap";
+import StorePerformanceTable from "../components/reporting/StorePerformanceTable";
+import { chartColors, brand } from "../styles/theme";
 import { apiGet } from "../lib/api";
 import {
   DAILY_ROWS,
   FALLBACK_CITIES,
+  FALLBACK_STORES,
   PERIOD_OPTIONS,
   REPORTING_CAMPAIGNS,
+  buildStoreRows,
   filterRows,
   getPeriodRange,
   groupByKey,
@@ -91,21 +95,25 @@ export default function Reporting() {
   const [campaignId, setCampaignId] = useState("all");
   const [city, setCity] = useState("all");
   const [cities, setCities] = useState(FALLBACK_CITIES);
+  const [stores, setStores] = useState(FALLBACK_STORES);
 
-  // Cities come from the client store DB already imported in /magasins — reuse
+  // Stores come from the client store DB already imported in /magasins — reuse
   // the existing endpoint (read-only), with a graceful fallback if it's offline.
+  // Cities (for the filter) and the raw store list (for the zones map + the
+  // per-store table, Jour 5) are both derived from this single call.
   useEffect(() => {
     let active = true;
     apiGet("/stores")
-      .then((stores) => {
+      .then((data) => {
         if (!active) return;
-        const unique = [...new Set(stores.map((store) => store.city).filter(Boolean))].sort(
+        const unique = [...new Set(data.map((store) => store.city).filter(Boolean))].sort(
           (a, b) => a.localeCompare(b),
         );
         if (unique.length > 0) setCities(unique);
+        if (data.length > 0) setStores(data);
       })
       .catch(() => {
-        /* keep FALLBACK_CITIES */
+        /* keep FALLBACK_CITIES / FALLBACK_STORES */
       });
     return () => {
       active = false;
@@ -195,6 +203,14 @@ export default function Reporting() {
     [filteredRows],
   );
   const topCity = useMemo(() => groupByKey(filteredRows, "city")[0] ?? null, [filteredRows]);
+
+  // Jour 5 — one row per store, reusing the exact same filtered dataset as
+  // the KPIs/charts above, so the map and table stay consistent with the
+  // active période/campagne/ville filters.
+  const storeRows = useMemo(
+    () => buildStoreRows(filteredRows, stores),
+    [filteredRows, stores],
+  );
 
   const insights = useMemo(() => {
     if (totals.impressions === 0) {
@@ -322,6 +338,43 @@ export default function Reporting() {
             </li>
           ))}
         </ul>
+      </Card>
+
+      {/* Jour 5 — geographic map of diffusion zones */}
+      <Card className="mt-6 p-5">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-base font-semibold text-slate-900">
+              Carte des zones de diffusion
+            </h2>
+            <p className="text-sm text-slate-400">
+              Un marqueur par magasin, entouré de son rayon de diffusion
+              (données mockées : 5, 10 ou 15 km)
+            </p>
+          </div>
+          <div className="flex items-center gap-4">
+            <span className="flex items-center gap-1.5 text-sm text-slate-500">
+              <span
+                className="h-2.5 w-2.5 rounded-full"
+                style={{ backgroundColor: brand.primary }}
+              />
+              Marqueur = magasin
+            </span>
+            <span className="flex items-center gap-1.5 text-sm text-slate-500">
+              <span
+                className="h-3 w-3 rounded-full border-2"
+                style={{ borderColor: brand.primary, backgroundColor: `${brand.primary}1a` }}
+              />
+              Cercle violet = zone de diffusion
+            </span>
+          </div>
+        </div>
+        <ReportingZonesMap rows={storeRows} />
+      </Card>
+
+      {/* Jour 5 — sortable per-store table + CSV export */}
+      <Card className="mt-6 p-5">
+        <StorePerformanceTable rows={storeRows} />
       </Card>
     </>
   );

@@ -496,3 +496,119 @@ touché.
   précis** (seulement sa ville) — un filtre plus granulaire pourra être
   ajouté plus tard si nécessaire.
 - Pas d'export ni de carte géographique à ce stade (prévus Jour 5).
+
+---
+
+## Jour 5 — Carte des zones de diffusion, tableau par magasin, export CSV
+
+### Objectif
+
+Compléter `/reporting` avec une vue **par magasin** : carte géographique des
+zones de diffusion (marqueurs + rayons), tableau détaillé triable, et export
+CSV — sans rien retirer des KPI/graphiques du Jour 4, et en gardant les
+filtres existants (période, campagne, ville/magasin) pleinement fonctionnels
+sur ces nouvelles sections.
+
+### Carte des zones de diffusion
+
+- Nouveau composant `frontend/src/components/reporting/ReportingZonesMap.jsx`
+  — carte **Leaflet + OpenStreetMap** (déjà utilisé pour `/magasins`, aucune
+  clé Google Maps). En **lecture seule** (pas de sélection), volontairement
+  distinct de `components/stores/StoreMap.jsx` (qui gère la sélection de
+  magasins pour la création de campagne) pour ne prendre aucun risque sur ce
+  composant déjà en production.
+- Un **marqueur violet** par magasin, entouré d'un **cercle violet**
+  représentant son rayon de diffusion mocké (**5, 10 ou 15 km**, assigné de
+  façon déterministe par magasin).
+- **Légende simple** au-dessus de la carte : « Marqueur = magasin » /
+  « Cercle violet = zone de diffusion ».
+- Popup au clic sur un marqueur : nom du magasin, ville, campagne, rayon.
+- Message clair si aucun magasin ne correspond aux filtres actifs.
+
+### Tableau détaillé par magasin (triable)
+
+- Nouveau composant
+  `frontend/src/components/reporting/StorePerformanceTable.jsx`.
+- Colonnes exactes demandées : **Magasin, Ville, Campagne, Rayon,
+  Impressions, Clics, CTR, Budget dépensé, Visites estimées**.
+- **Tri** sur toutes les colonnes (clic sur l'en-tête) ; les colonnes
+  numériques (Impressions, Clics, CTR, Budget dépensé, Visites estimées) et
+  textuelles sont toutes triables. **Indicateur visuel** clair : en-tête en
+  violet + chevron haut/bas sur la colonne triée, chevrons neutres sur les
+  autres colonnes. Tri par défaut : Impressions décroissant.
+- « Visites estimées » : nouvelle métrique mockée (taux de conversion
+  clic → visite déterministe par magasin, ~25–45 %), cohérente avec le thème
+  drive-to-store.
+
+### Export CSV
+
+- Bouton **« Exporter CSV »** dans l'en-tête du tableau, désactivé si aucune
+  ligne à exporter.
+- Export **100 % frontend** (`Blob` + lien de téléchargement, aucun appel
+  backend) : reprend exactement les lignes et l'**ordre de tri actuellement
+  affiché** (« ce que vous voyez est ce que vous exportez »).
+- Nom de fichier : **`reporting-magasins.csv`**.
+- Intitulés de colonnes identiques à ceux du tableau, séparateur `;` (même
+  convention que l'import de magasins côté backend, compatible Excel FR),
+  avec un BOM UTF-8 pour un affichage correct des accents.
+
+### Cohérence avec les filtres existants
+
+- La carte et le tableau réutilisent **exactement les mêmes données déjà
+  filtrées** par période/campagne/ville que les KPI et graphiques du Jour 4
+  (`buildStoreRows(filteredRows, stores)` dans `reportingData.js`) : changer
+  un filtre met à jour **KPI, graphiques, carte et tableau** en une seule
+  fois, sans double logique de filtrage à maintenir.
+- Le magasin/ville de chaque ligne est déduit de `GET /api/stores` (endpoint
+  déjà existant, réutilisé tel quel) croisé avec le mapping annonceur ↔
+  campagne déjà utilisé au Jour 4.
+
+### Choix technique : aucune modification des fichiers partagés
+
+- `Dashboard.jsx`, `PerformanceChart.jsx`, `components/stores/StoreMap.jsx` et
+  `mockData.js` n'ont **pas été modifiés**. Les deux nouveaux composants
+  vivent dans `components/reporting/`, comme demandé.
+- Aucune route existante changée ; aucune nouvelle dépendance (Leaflet et
+  Recharts étaient déjà installés).
+
+### Tests effectués
+
+- `npm run build` ✅ et `npm run lint` ✅ (0 warning).
+- Navigateur : carte affichant les 5 magasins mockés (marqueurs + cercles de
+  tailles différentes 5/10/15 km), légende visible.
+- Tableau : tri croissant/décroissant vérifié sur la colonne CTR (indicateur
+  visuel correct), valeurs cohérentes avec les KPI affichés au-dessus
+  (ex. filtre Ville = Rabat → 2 lignes, KPI Impressions = 635k = somme exacte
+  des 2 lignes du tableau).
+- Filtre Ville « Rabat » → carte et tableau se limitent tous les deux aux 2
+  magasins de Rabat, en cohérence avec les KPI recalculés.
+- Export CSV vérifié au niveau des **octets** : BOM UTF-8 présent
+  (`EF BB BF`), en-têtes et délimiteur `;` corrects, ordre des lignes
+  identique au tri actif à l'écran, nom de fichier `reporting-magasins.csv`
+  confirmé.
+- Dashboard, Campagnes, Magasins, Créations/DCO, création de campagne
+  vérifiés inchangés après ces ajouts.
+
+### Ce qui est fait / ce qu'il reste à faire
+
+**Fait (Jour 5)**
+- Carte des zones de diffusion (marqueurs + rayons mockés + légende).
+- Tableau détaillé par magasin, triable sur toutes les colonnes demandées.
+- Export CSV (`reporting-magasins.csv`), cohérent avec le tri affiché.
+- Cohérence totale avec les filtres période/campagne/ville existants.
+
+**Reste à faire (au-delà de la Semaine 5)**
+- Export CSV/PDF englobant aussi les KPI et graphiques (pas seulement le
+  tableau par magasin).
+- Sélection d'un magasin précis dans le filtre (au lieu de sa ville).
+- Données réelles (aujourd'hui entièrement mockées, comme le Jour 4).
+
+### Limites actuelles (Jour 5)
+
+- Le rayon de diffusion (5/10/15 km) et les « visites estimées » restent des
+  valeurs **mockées déterministes**, pas des données réelles de geofencing ou
+  d'attribution de visite.
+- L'export CSV ne couvre que le tableau par magasin (pas les KPI ni les
+  séries des graphiques).
+- La carte est en lecture seule (pas d'édition de rayon depuis cette page —
+  cela reste géré depuis `/magasins` et la création de campagne).
