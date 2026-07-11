@@ -726,3 +726,76 @@ carrefour.ma.
 - Envoi réel d'e-mails d'invitation / de notification (actuellement simulé).
 - Tests automatisés (unitaires / e2e) — la validation reste manuelle à ce
   stade.
+
+---
+
+## Jour 4 — Documentation technique
+
+> Passe de **documentation** (branche `docs/week6-technical-documentation`) :
+> aucun code fonctionnel modifié, aucun design changé, aucune route ajoutée
+> ou renommée. Objectif : donner à l'encadrante SBS une documentation
+> technique complète et fiable de l'état actuel du projet, en s'appuyant
+> uniquement sur le code existant.
+
+### Travail réalisé
+
+- Relecture complète du backend (`backend/app/routes/`, `schemas/`,
+  `services/`, `models/`, `core/`, `database.py`, `main.py`) et du frontend
+  (`frontend/src/routes/AppRouter.jsx`, `pages/`, `components/`, `data/`,
+  `lib/api.js`) pour vérifier, endpoint par endpoint et route par route, ce
+  qui existe réellement dans le code (aucun endpoint « imaginé »).
+- Création de **`docs/documentation-technique.md`** — document de référence
+  couvrant :
+  1. l'architecture générale (frontend ↔ backend ↔ PostgreSQL non branché) ;
+  2. la structure des dossiers frontend et backend, avec les conventions du
+     projet (couche `data/*Api.js`, services `*_service.py`) ;
+  3. le guide d'installation locale (Node.js / Python) ;
+  4. les commandes de lancement backend (`uvicorn`) et frontend (`npm run dev`) ;
+  5. les variables de configuration (`.env` backend, `VITE_API_URL` frontend) ;
+  6. les 8 routes frontend principales, avec rôles autorisés et détail des 5
+     étapes de l'assistant de création de campagne ;
+  7. les **24 endpoints** backend actuellement enregistrés, avec méthode,
+     rôle et exemple de réponse JSON réel (tiré des données mockées) ;
+  8. un schéma logique condensé des entités (utilisateurs, annonceurs,
+     campagnes, magasins, créatives, statistiques, paramètres de compte,
+     brouillons de campagne), avec renvoi vers le schéma PostgreSQL complet
+     déjà existant (`docs/schema-base-de-donnees.md`) ;
+  9. un guide de test fonctionnel rapide (9 étapes, aligné sur le parcours
+     déjà validé au Jour 3) ;
+  10. les limites actuelles (données en mémoire, exception faite des
+      brouillons de campagne réellement persistés ; deux registres de
+      paramètres de compte distincts ; pas d'authentification réelle ; DCO
+      et landing pages simulées ; pas de tests automatisés) ;
+  11. des pistes de déploiement conceptuelles (frontend statique + backend
+      ASGI + PostgreSQL), explicitement présentées comme non implémentées à
+      ce jour (aucun Dockerfile ni pipeline CI/CD dans le dépôt).
+- Mise à jour de ce fichier (`docs/etat-avancement-semaine-6.md`) avec la
+  présente section.
+
+### Points de vigilance documentés
+
+- Les **paramètres de compte** existent sous **deux formes distinctes**
+  côté backend : `/api/advertisers/{id}/settings` (par annonceur, Jour 1) et
+  `/api/account-settings` (global, Jour 2) — la documentation technique
+  précise explicitement laquelle est utilisée par l'écran actuel, pour
+  éviter toute confusion lors d'une reprise du projet.
+- Les **brouillons de campagne** sont la seule donnée réellement persistée
+  aujourd'hui (PostgreSQL si disponible, sinon SQLite local
+  `backend/.local/campaign_drafts.db`, ignoré par Git) — signalé comme
+  exception au reste de l'API (mock en mémoire).
+- Aucune fausse route ni faux endpoint n'a été documenté : la liste des 23
+  endpoints correspond exactement à ce qui est enregistré dans
+  `backend/app/routes/__init__.py` au moment de la rédaction.
+
+### Fichiers modifiés / créés (Jour 4)
+
+- `docs/documentation-technique.md` (**nouveau**)
+- `docs/etat-avancement-semaine-6.md` (cette section)
+
+### Validations restantes
+
+- Tenir `docs/documentation-technique.md` à jour à chaque nouvel endpoint ou
+  nouvelle route ajoutée dans les prochaines semaines.
+- Aligner, à terme, `README.md` et `backend/README.md` (encore au niveau
+  Semaine 2 pour le premier, liste d'endpoints partielle pour le second) sur
+  le contenu de cette documentation technique.
