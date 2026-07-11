@@ -8,7 +8,7 @@ Each record is a plain ``dict`` whose keys match the corresponding ORM
 model / Pydantic schema fields, which keeps the eventual swap to real database
 queries straightforward.
 """
-from datetime import date
+from datetime import date, datetime, timedelta, timezone
 
 from app.core.enums import (
     CampaignObjective,
@@ -18,8 +18,13 @@ from app.core.enums import (
     UserStatus,
 )
 
+_now = datetime.now(timezone.utc)
+
 # --------------------------------------------------------------------------- #
 #  Users                                                                       #
+#  `advertiser_id` links a user to the advertiser they work for (None = SBS   #
+#  internal/platform staff). `last_login` is None for a user who never signed #
+#  in yet (matches an "invited" status).                                      #
 # --------------------------------------------------------------------------- #
 USERS = [
     {
@@ -28,6 +33,8 @@ USERS = [
         "email": "aya.achiban@sbsdatafactory.ma",
         "role": UserRole.ADMIN,
         "status": UserStatus.ACTIVE,
+        "advertiser_id": None,
+        "last_login": _now - timedelta(hours=2),
     },
     {
         "id": 2,
@@ -35,6 +42,8 @@ USERS = [
         "email": "mehdi.bennani@sbsdatafactory.ma",
         "role": UserRole.MEDIA_BUYER,
         "status": UserStatus.ACTIVE,
+        "advertiser_id": 1,
+        "last_login": _now - timedelta(days=1, hours=3),
     },
     {
         "id": 3,
@@ -42,6 +51,8 @@ USERS = [
         "email": "salma.ouldali@sbsdatafactory.ma",
         "role": UserRole.READER,
         "status": UserStatus.INVITED,
+        "advertiser_id": 2,
+        "last_login": None,
     },
     {
         "id": 4,
@@ -49,11 +60,15 @@ USERS = [
         "email": "karim.ziani@sbsdatafactory.ma",
         "role": UserRole.MEDIA_BUYER,
         "status": UserStatus.DISABLED,
+        "advertiser_id": 3,
+        "last_login": _now - timedelta(days=45),
     },
 ]
 
 # --------------------------------------------------------------------------- #
 #  Advertisers                                                                 #
+#  `status` is a simple "active" / "inactive" string (not a strict enum) to    #
+#  keep this Semaine 6 addition lightweight and mock/in-memory only.          #
 # --------------------------------------------------------------------------- #
 ADVERTISERS = [
     {
@@ -63,6 +78,10 @@ ADVERTISERS = [
         "contact_name": "Yassine El Amrani",
         "phone": "+212 522 00 11 22",
         "email": "contact@marjane.ma",
+        "address": "Route de Rabat, Aïn Sebaâ",
+        "city": "Casablanca",
+        "website": "https://www.marjane.ma",
+        "status": "active",
     },
     {
         "id": 2,
@@ -71,6 +90,10 @@ ADVERTISERS = [
         "contact_name": "Salma Bennani",
         "phone": "+212 522 33 44 55",
         "email": "contact@carrefour.ma",
+        "address": "Boulevard Zerktouni",
+        "city": "Casablanca",
+        "website": "https://www.carrefour.ma",
+        "status": "active",
     },
     {
         "id": 3,
@@ -79,6 +102,10 @@ ADVERTISERS = [
         "contact_name": "Omar Idrissi",
         "phone": "+212 522 66 77 88",
         "email": "contact@bim.ma",
+        "address": "Zone Industrielle, Sidi Bernoussi",
+        "city": "Casablanca",
+        "website": "https://www.bim.ma",
+        "status": "active",
     },
     {
         "id": 4,
@@ -87,6 +114,10 @@ ADVERTISERS = [
         "contact_name": "Nadia Tazi",
         "phone": "+212 522 99 00 11",
         "email": "contact@cihbank.ma",
+        "address": "187 Avenue Hassan II",
+        "city": "Rabat",
+        "website": "https://www.cihbank.ma",
+        "status": "active",
     },
 ]
 

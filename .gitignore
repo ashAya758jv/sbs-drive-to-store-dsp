@@ -10,3 +10,6 @@ __pycache__/
 *.db
 *.sqlite3
 .local/
+
+# Local Claude Code dev-server launch config (machine-specific)
+.claude/
