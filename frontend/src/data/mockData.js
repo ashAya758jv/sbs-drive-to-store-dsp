@@ -84,7 +84,7 @@ export const navItems = [
     label: "Gestion du compte",
     to: "/compte",
     icon: Settings,
-    roles: [ROLES.ADMIN],
+    roles: [ROLES.ADMIN, ROLES.MEDIA_BUYER, ROLES.READER],
   },
 ];
 

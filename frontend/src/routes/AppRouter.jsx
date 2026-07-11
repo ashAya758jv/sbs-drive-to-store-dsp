@@ -76,7 +76,7 @@ export default function AppRouter() {
         <Route
           path="/compte"
           element={
-            <RequireRole roles={[ROLES.ADMIN]}>
+            <RequireRole roles={[ROLES.ADMIN, ROLES.MEDIA_BUYER, ROLES.READER]}>
               <AccountManagement />
             </RequireRole>
           }

@@ -6,6 +6,7 @@ Mounted in ``main.py`` with the ``/api`` prefix, so the final paths are
 from fastapi import APIRouter
 
 from app.routes import (
+    account_settings,
     advertisers,
     campaign_creation,
     campaigns,
@@ -21,6 +22,7 @@ api_router = APIRouter()
 api_router.include_router(health.router)
 api_router.include_router(users.router)
 api_router.include_router(advertisers.router)
+api_router.include_router(account_settings.router)
 api_router.include_router(stores.router)
 api_router.include_router(store_import.router)
 api_router.include_router(campaigns.router)
