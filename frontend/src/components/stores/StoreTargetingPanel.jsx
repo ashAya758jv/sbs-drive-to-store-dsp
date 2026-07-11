@@ -13,6 +13,7 @@ import Badge from "../ui/Badge";
 import Select from "../ui/Select";
 import { EXPECTED_COLUMNS, previewStoreImport } from "../../data/storesApi";
 import StoreMap from "./StoreMap";
+import StoreUrlText from "./StoreUrlText";
 import { cn } from "../../lib/cn";
 
 /** Default geofencing radius (km) applied to a store when first selected. */
@@ -451,15 +452,13 @@ export default function StoreTargetingPanel({
                               {store.opening_hours}
                             </td>
                             <td className="max-w-[180px] truncate px-5 py-3">
-                              <a
-                                href={store.store_url}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="text-primary-700 hover:underline"
-                                title={store.store_url}
-                              >
-                                {store.store_url}
-                              </a>
+                              {/* Store URL as plain, non-clickable text (see
+                                  StoreUrlText) — the demo URLs 404 in real
+                                  life, so this must never be a link. */}
+                              <StoreUrlText
+                                url={store.store_url}
+                                className="block truncate"
+                              />
                             </td>
                           </tr>
                         );

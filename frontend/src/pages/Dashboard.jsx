@@ -138,7 +138,7 @@ export default function Dashboard() {
             </p>
           </div>
           <Link
-            to="/reporting"
+            to="/campagnes"
             className="text-sm font-medium text-primary-700 transition-colors hover:text-primary-800 active:text-primary-900"
           >
             Voir tout

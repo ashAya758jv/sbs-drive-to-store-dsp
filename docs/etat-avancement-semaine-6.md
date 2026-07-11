@@ -233,7 +233,14 @@ Les endpoints existants sont inchangés (`/api/health`, `/api/stores`,
 
 ---
 
-## Jour 2 — Onglet Paramètres branché sur l'API globale `/api/account-settings`
+## Jour 2 — Intégration complète et correction des bugs
+
+> Cette journée couvre deux volets : (A) la correction du branchement de
+> l'onglet Paramètres sur `/api/account-settings` (voir plus bas), et (B) une
+> vérification bout en bout de tous les modules avec correction des bugs de
+> navigation trouvés (section « Suite du Jour 2 » ci-dessous).
+
+### A. Onglet Paramètres branché sur l'API globale `/api/account-settings`
 
 ### Objectif
 
@@ -332,3 +339,280 @@ plate, sans annonceur) répondait `404` : au Jour 1, les paramètres n'avaient
   pour le moment — l'endpoint imbriqué `/api/advertisers/{id}/settings` du
   Jour 1 reste disponible côté backend pour un usage futur, mais n'est plus
   relié à aucun écran.
+
+---
+
+### B. Suite du Jour 2 — Vérification bout en bout et correction des bugs de navigation
+
+#### Objectif
+
+Sur la branche `feat/week6-end-to-end-integration`, rejouer le parcours
+complet de l'application (création de campagne, magasins, DCO, reporting,
+gestion du compte, navigation globale) pour vérifier la cohérence entre
+modules et corriger les bugs de navigation trouvés — sans refaire le design
+ni casser les modules déjà validés.
+
+#### Méthode
+
+Backend et frontend relancés depuis zéro (cache Vite vidé) pour éliminer tout
+état de serveur de dev périmé, puis parcours manuel dans le navigateur
+(`mcp__Claude_Preview`) de chaque module avec vérification systématique de la
+console (aucune erreur), des requêtes réseau (aucun échec) et du contenu
+affiché :
+
+- **Création de campagne** : `/campagnes` → `/campagnes/nouvelle` → remplissage
+  de l'étape 1 → **« Enregistrer le brouillon »** (`POST /api/campaigns/drafts`
+  → 201) → retour à `/campagnes` → le brouillon apparaît bien dans « Vos
+  brouillons ». Parcours complet des 5 étapes (général → ciblage technique →
+  formats → magasins ciblés → catégories) validé, y compris la règle du
+  stepper (on ne peut sauter en avant qu'en validant chaque étape via
+  « Suivant », comportement voulu, pas un bug).
+- **Magasins** : import de `docs/samples/stores-valid.csv` → analyse (3
+  lignes, 0 erreur) → « Tout sélectionner » → rayons de géociblage (5 km par
+  défaut, éditables) → carte Leaflet avec les 3 marqueurs. Étape « Magasins
+  ciblés » du wizard de création de campagne vérifiée identique (même
+  composant partagé `StoreTargetingPanel`), confirmant la cohérence demandée.
+- **DCO** : upload d'un visuel bannière → **« Enregistrer les créatives »**
+  (`POST /api/dco/creatives` → 201) → **« Générer toutes les variantes »** →
+  galerie et comparaison par magasin affichées → landing page prévisualisée →
+  bouton **« Voir la fiche magasin »** confirmé sans navigation réelle
+  (reste sur `/dco`, affiche l'encart « Lien magasin simulé pour la démo »).
+- **Reporting** : changement du filtre Période (30 jours → 7 jours) → les 4
+  KPI recalculés correctement (ex. impressions 1,6M → 366k) ; export CSV
+  vérifié au niveau des octets (BOM `EF BB BF`, `sep=;`, accents normalisés) —
+  déjà conforme, aucune régression.
+- **Gestion du compte** : les 3 onglets rechargés sans erreur console ni
+  requête en échec (déjà vérifiés en profondeur au Jour 1 / Jour 2-A).
+- **Navigation globale** : route inconnue (`/route-inexistante-xyz`) →
+  redirection vers `/dashboard` (pas de page blanche) ; breadcrumbs et
+  sidebar revérifiés sur chaque page.
+
+#### Bugs trouvés et corrigés
+
+1. **Liens externes non maîtrisés vers des URLs mockées (404 potentiel)** —
+   trois endroits affichaient un vrai lien cliquable (`<a href target="_blank">`)
+   vers la valeur `store_url` des données de démo (ex.
+   `https://www.marjane.ma/californie`), un domaine réel qui ne possède pas
+   ces pages et renverrait une 404 :
+   - `frontend/src/pages/DCO.jsx` (`VariantCard`, utilisé dans « Comparaison
+     par magasin » et « Galerie des variantes ») ;
+   - `frontend/src/components/stores/StoreTargetingPanel.jsx` (colonne URL du
+     tableau des magasins importés, partagé par `/magasins` et l'étape
+     « Magasins ciblés » du wizard) ;
+   - `frontend/src/components/stores/StoreMap.jsx` (lien « Voir la fiche
+     magasin → » dans le popup Leaflet, même deux écrans).
+
+   **Correction** : dans les trois cas, remplacement du lien réel par un
+   texte informationnel non cliquable (même position, même style visuel,
+   URL toujours visible/consultable via `title`), sans navigation possible.
+   Le bouton **« Voir la fiche magasin »** de la landing page DCO
+   (`LandingPagePreview`) était déjà correctement traité depuis la Semaine 5
+   Jour 3 (encart inline, pas de navigation) — non modifié ici.
+2. **Lien « Voir tout » du Dashboard pointait vers le mauvais module** —
+   dans la carte « Campagnes récentes » du Dashboard, le lien
+   « Voir tout » renvoyait vers `/reporting` au lieu de `/campagnes`, ce qui
+   ne correspondait pas au contenu de la section. Corrigé dans
+   `frontend/src/pages/Dashboard.jsx` (`to="/campagnes"`).
+
+Aucun autre bug de navigation, page blanche, route manquante ou bouton cassé
+trouvé lors de ce parcours.
+
+#### Fichiers modifiés (Jour 2-B)
+
+- `frontend/src/pages/DCO.jsx`
+- `frontend/src/components/stores/StoreTargetingPanel.jsx`
+- `frontend/src/components/stores/StoreMap.jsx`
+- `frontend/src/pages/Dashboard.jsx`
+
+#### Tests effectués
+
+- `npm run build` ✅ et `npm run lint` ✅ (0 warning).
+- Vérification ciblée après correction : `document.querySelectorAll('a[href*="marjane"]')`
+  renvoie 0 élément sur `/dco` et `/magasins` (plus aucun lien réel vers les
+  URLs mockées), y compris dans le popup Leaflet (vérifié via son contenu
+  HTML). Le lien « Voir tout » du Dashboard pointe bien vers `/campagnes`.
+- Backend redémarré en fin de parcours pour repartir sur les données mockées
+  d'origine (aucune donnée de test — brouillon, visuel DCO — laissée en
+  mémoire).
+
+#### Limites actuelles (Jour 2-B)
+
+- Les URLs de magasin (`store_url`) restent des données de démonstration :
+  elles sont maintenant affichées de façon purement informative partout
+  (jamais cliquables), cohérent avec le choix déjà fait pour la landing page
+  DCO en Semaine 5.
+- Comme documenté aux jours précédents, l'ensemble de l'application reste sur
+  des données mockées / en mémoire — aucune modification de ce périmètre
+  n'a été faite ici.
+
+---
+
+### C. Neutralisation définitive des liens externes magasins
+
+#### Contexte
+
+Après la correction B ci-dessus, un test manuel sur `/dco` a signalé qu'une
+URL magasin (ex. `https://www.marjane.ma/hay-riad`) dans la section
+« Galerie des variantes » restait cliquable et menait à une page 404 réelle
+sur marjane.ma. Vérification du code : la correction B avait bien remplacé
+le `<a href>` par un `<span>` non cliquable dans les trois emplacements
+identifiés — le comportement rapporté correspondait donc à un bundle
+frontend obsolète (cache Vite / serveur de dev non redémarré), pas à un code
+non corrigé.
+
+#### Recherche exhaustive
+
+Recherche de `store_url`, `storeUrl`, `href=`, `target="_blank"`,
+`window.open`, « Voir la fiche magasin » et `marjane.ma` / `carrefour.ma`
+dans tout `frontend/src`. Résultat : les trois emplacements de la correction
+B (DCO, tableau magasins, popup carte) étaient déjà des `<span>` sans
+`href`, plus le bouton « Voir la fiche magasin » de la landing page DCO
+(toggle inline, pas de lien réel). Les seuls `<a href="http...">` restants
+dans tout le code sont les liens d'attribution OpenStreetMap
+(`https://www.openstreetmap.org/copyright`) dans `StoreMap.jsx` et
+`ReportingZonesMap.jsx` — des liens réels, légitimes et obligatoires (mention
+légale des fonds de carte), volontairement non modifiés.
+
+#### Durcissement appliqué (par précaution, en plus de la vérification)
+
+Pour éliminer tout doute (visuel et fonctionnel) et couvrir le cas d'un
+bundle mis en cache côté navigateur/serveur de dev, les trois emplacements
+ont été renforcés :
+- `frontend/src/pages/DCO.jsx` (`VariantCard`, sections « Comparaison par
+  magasin » et « Galerie des variantes ») ;
+- `frontend/src/components/stores/StoreTargetingPanel.jsx` (colonne URL du
+  tableau des magasins importés, `/magasins` + étape « Magasins ciblés » du
+  wizard) ;
+- `frontend/src/components/stores/StoreMap.jsx` (popup Leaflet, mêmes deux
+  écrans).
+
+Dans les trois cas : couleur neutralisée de `text-primary-700` (couleur des
+liens) vers un gris neutre (`text-slate-500` / `#64748b`, identique aux
+autres métadonnées comme les horaires) et `cursor: default` explicite, pour
+qu'il n'y ait plus aucune ambiguïté visuelle laissant penser que ces textes
+sont cliquables. Aucun `href`, `onClick` de navigation ni `window.open`
+n'a jamais été présent après la correction B ; ce n'était qu'un
+raffinement visuel de clarté, la case fonctionnelle était déjà cochée.
+
+#### Tests effectués
+
+- Backend et frontend **entièrement redémarrés** (cache `node_modules/.vite`
+  vidé) pour exclure tout bundle périmé, puis :
+  - `/dco` : upload + enregistrement d'un visuel → génération des variantes →
+    dans « Galerie des variantes », l'élément affichant l'URL est vérifié
+    par script être un `<span>` **sans attribut `href`**, avec
+    `cursor: default`, et un clic dessus **ne modifie pas** `window.location`
+    et n'appelle jamais `window.open` (vérifié en interceptant les deux).
+  - `/magasins` : import CSV → sélection → même vérification sur la cellule
+    URL du tableau (`<span>`, pas de `href`, clic sans navigation) et sur le
+    popup Leaflet du marqueur (aucune balise `<a>` dans le popup, clic sur le
+    texte de l'URL sans navigation).
+  - Recherche finale `document.querySelectorAll('a')` filtrée sur
+    `marjane.ma` / `carrefour.ma` sur les pages `/dco` et `/magasins` : **0
+    résultat**.
+- `npm run build` ✅ et `npm run lint` ✅ (0 warning).
+
+#### Fichiers modifiés (Jour 2-C)
+
+- `frontend/src/pages/DCO.jsx`
+- `frontend/src/components/stores/StoreTargetingPanel.jsx`
+- `frontend/src/components/stores/StoreMap.jsx`
+
+#### Limites actuelles (Jour 2-C)
+
+- Si un ancien onglet de navigateur reste ouvert sur une version pré-Jour 2
+  de l'application (bundle Vite mis en cache avant ces corrections), un
+  rechargement complet (Ctrl+F5) ou un redémarrage du serveur de dev est
+  nécessaire pour voir le correctif — comportement normal de tout serveur de
+  développement Vite, pas une limite du correctif lui-même.
+- Aucune autre limite nouvelle : mêmes limites qu'aux sections A et B
+  ci-dessus (données mockées / en mémoire).
+
+---
+
+### D. Composant `StoreUrlText` — URLs magasins en texte non cliquable (définitif)
+
+#### Contexte
+
+Malgré la correction C, un test manuel signalait encore des URLs magasins
+cliquables sur `/dco` (« Comparaison par magasin » et « Galerie des
+variantes »). Le code source ne contenait pourtant plus aucun `<a>`/`href`
+autour d'un `store_url` — le symptôme correspond à un **bundle de dev en
+cache** (Vite `node_modules/.vite` + onglet navigateur non rechargé). Pour
+lever toute ambiguïté et centraliser la règle, un composant utilitaire dédié
+a été introduit et branché partout où une URL magasin est affichée.
+
+#### Composant utilitaire
+
+Nouveau fichier `frontend/src/components/stores/StoreUrlText.jsx` : rend une
+URL magasin comme **texte simple non cliquable** — un `<span>` sans `href`,
+sans `onClick`, sans `target`, sans `window.open`. L'URL reste visible et
+sélectionnable (`select-text`), en violet (`text-violet-600`), avec
+`cursor: default` pour ne jamais ressembler à un lien. Retour explicite
+« URL non disponible » quand `url` est vide.
+
+```jsx
+export default function StoreUrlText({ url, className }) {
+  if (!url) return <span className={cn("text-slate-400", className)}>URL non disponible</span>;
+  return (
+    <span className={cn("cursor-default select-text text-violet-600", className)} title={url}>
+      {url}
+    </span>
+  );
+}
+```
+
+#### Emplacements branchés sur `StoreUrlText`
+
+- `frontend/src/pages/DCO.jsx` :
+  - `VariantCard` (utilisé par **« Comparaison par magasin »** ET
+    **« Galerie des variantes »**) — l'URL passe désormais par
+    `<StoreUrlText …>` (avant : `<span>` déjà non cliquable, mais couleur
+    grise) ;
+  - encart « Lien magasin simulé pour la démo » des **« Landing pages
+    personnalisées »** — idem.
+- `frontend/src/components/stores/StoreTargetingPanel.jsx` : colonne URL du
+  tableau des magasins importés (`/magasins` **et** étape « Magasins ciblés »
+  du wizard de création de campagne).
+- `frontend/src/components/stores/StoreMap.jsx` : le popup Leaflet est
+  construit en DOM impératif (pas de JSX), il ne peut donc pas réutiliser le
+  composant React ; il applique la **même règle** manuellement (`<span>`,
+  jamais `<a>`, couleur violet `#7c3aed`, `cursor: default`).
+
+Le champ « URL du magasin » du bloc « Champs dynamiques client » de `/dco`
+était déjà un `<input disabled readOnly>` (non navigable) — inchangé.
+`Dashboard.jsx` n'affiche aucune URL magasin (seul lien : « Voir tout » →
+`/campagnes`, lien interne React Router) — inchangé.
+
+#### Vérification (preuve live, serveur relancé + cache Vite vidé)
+
+- `/dco` (après upload → enregistrement → génération des variantes) : les
+  **4** éléments affichant une URL magasin (2 dans « Comparaison par magasin »
+  + 2 dans « Galerie des variantes ») sont tous `tagName === "SPAN"`,
+  `hasAttribute("href") === false`, `closest("a") === null`,
+  `cursor: default`, couleur violette. Un clic **sur chacun** :
+  `window.location` inchangée (reste `/dco`) et `window.open` **jamais**
+  appelé (les deux interceptés pendant le test).
+- `/magasins` (import CSV → sélection) : la cellule URL du tableau est un
+  `<span>` sans `href`, clic sans navigation ;
+  `document.querySelectorAll('a')` filtré sur `marjane.ma` / `carrefour.ma`
+  = **0** sur la page.
+- Recherche code : plus **aucun** `<a>`/`href`/`target`/`window.open` autour
+  d'un `store_url` dans tout `frontend/src`. Les seuls `<a href>` restants
+  sont les attributions OpenStreetMap (mention légale des fonds de carte),
+  légitimes.
+- `npm run build` ✅ et `npm run lint` ✅ (0 warning). Le CSS généré passe de
+  58,02 à 58,19 kB, confirmant que la classe `text-violet-600` est bien
+  produite.
+
+#### Fichiers modifiés (Jour 2-D)
+
+- `frontend/src/components/stores/StoreUrlText.jsx` (**nouveau**)
+- `frontend/src/pages/DCO.jsx`
+- `frontend/src/components/stores/StoreTargetingPanel.jsx`
+- `frontend/src/components/stores/StoreMap.jsx`
+
+En résumé : **les URLs magasins sont désormais affichées en texte non
+cliquable partout** (DCO, magasins, étape magasins du wizard, popup carte),
+via le composant `StoreUrlText`. Aucune n'ouvre plus marjane.ma /
+carrefour.ma.

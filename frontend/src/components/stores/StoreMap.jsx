@@ -37,11 +37,6 @@ function buildMarkerIcon(selected) {
   });
 }
 
-/** Normalize a store_url so it's always a clickable absolute link. */
-function absoluteUrl(url) {
-  return /^https?:\/\//i.test(url) ? url : `https://${url}`;
-}
-
 /**
  * Popup content built with DOM nodes (not innerHTML) so store data coming
  * from an uploaded file can never be interpreted as markup. Includes a
@@ -74,13 +69,18 @@ function buildPopupContent(store, selected, onToggleSelect) {
   }
 
   if (store.store_url) {
-    const link = document.createElement("a");
-    link.href = absoluteUrl(store.store_url);
-    link.target = "_blank";
-    link.rel = "noreferrer";
-    link.textContent = "Voir la fiche magasin →";
-    link.style.cssText = `display:block;margin-bottom:8px;font-size:12px;font-weight:500;color:${brand.primary};text-decoration:underline;`;
-    wrapper.appendChild(link);
+    // Store URL as plain text — this popup is built with imperative DOM, so
+    // it can't reuse the <StoreUrlText> React component, but it follows the
+    // exact same rule: deliberately a <span>, never an <a> (no href, no
+    // window.open). Test/demo store_url values (e.g. marjane.ma/...) 404 in
+    // real life, so this must never trigger navigation. Violet #7c3aed to
+    // match StoreUrlText, but with default cursor so it doesn't read as a link.
+    const urlInfo = document.createElement("span");
+    urlInfo.textContent = "Fiche magasin (démo) : " + store.store_url;
+    urlInfo.title = store.store_url;
+    urlInfo.style.cssText =
+      "display:block;margin-bottom:8px;font-size:12px;font-weight:500;color:#7c3aed;cursor:default;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;";
+    wrapper.appendChild(urlInfo);
   }
 
   const selectRow = document.createElement("label");
