@@ -868,3 +868,47 @@ vérifiées directement dans le code avant d'être inscrites dans le scénario :
   minutages et les textes oraux.
 - Mettre à jour `docs/scenario-demonstration-finale.md` si de nouvelles
   fonctionnalités sont ajoutées avant la date de la démo.
+
+---
+
+## Jour 6 — Livraison finale
+
+> Passe de **documentation uniquement** (branche `docs/week6-final-delivery`) :
+> aucun fichier de `frontend/` ou `backend/` modifié, aucun comportement de
+> l'application changé. Objectif : produire un document de synthèse unique,
+> prêt à être envoyé à l'encadrante SBS, clôturant la Semaine 6.
+
+### Travail réalisé
+
+- Création de **`docs/livraison-finale-semaine-6.md`** — document de
+  livraison synthétique regroupant : résumé du projet, périmètre livré,
+  tableau des modules livrés avec leur état, état technique actuel,
+  commandes de lancement backend/frontend, tableau des endpoints
+  principaux, index des documents utiles du dépôt, résumé du scénario de
+  démonstration (renvoi vers le script complet plutôt que duplication),
+  limites honnêtes du prototype, prochaines améliorations possibles, et une
+  conclusion rédigée pour être envoyée telle quelle à l'encadrante.
+- Le document **synthétise** plutôt que duplique : il renvoie vers
+  `docs/documentation-technique.md`, `docs/schema-base-de-donnees.md`,
+  `docs/scenario-demonstration-finale.md` et
+  `docs/checklist-demonstration-finale.md` pour le détail, afin d'éviter
+  toute divergence future entre plusieurs copies de la même information.
+- Les faits techniques repris (24 endpoints, seule persistance réelle =
+  brouillons de campagne, PostgreSQL non branché, `/campagnes` non relié à
+  `GET /api/campaigns`, authentification simulée) sont ceux déjà vérifiés et
+  documentés aux Jours 4 et 5 — aucune nouvelle vérification de code n'était
+  nécessaire, la cohérence avec l'état réel du projet a simplement été
+  contrôlée avant rédaction.
+
+### Fichiers modifiés / créés (Jour 6)
+
+- `docs/livraison-finale-semaine-6.md` (**nouveau**)
+- `docs/etat-avancement-semaine-6.md` (cette section)
+
+### Validations restantes
+
+- Faire relire `docs/livraison-finale-semaine-6.md` avant envoi effectif à
+  l'encadrante.
+- Si des changements fonctionnels sont apportés après cette date, mettre à
+  jour ce document de livraison en conséquence (tableau des modules, état
+  technique, endpoints).
