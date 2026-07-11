@@ -22,6 +22,7 @@ import Button from "../components/ui/Button";
 import Field from "../components/ui/Field";
 import Input from "../components/ui/Input";
 import Select from "../components/ui/Select";
+import StoreUrlText from "../components/stores/StoreUrlText";
 import { getCampaignOptions, FALLBACK_OPTIONS } from "../data/campaignApi";
 import { apiGet } from "../lib/api";
 import {
@@ -171,15 +172,12 @@ function VariantCard({ variant }) {
             </p>
           )}
           {variant.store.store_url && (
-            <a
-              href={variant.store.store_url}
-              target="_blank"
-              rel="noreferrer"
-              className="flex items-center gap-1 truncate text-primary-700 hover:underline"
-            >
-              <Link2 className="h-3 w-3 shrink-0" />
-              {variant.store.store_url}
-            </a>
+            // Store URL as plain, non-clickable text (see StoreUrlText) — the
+            // demo URLs 404 in real life, so this must never be a link.
+            <span className="flex items-center gap-1">
+              <Link2 className="h-3 w-3 shrink-0 text-violet-600" />
+              <StoreUrlText url={variant.store.store_url} className="truncate" />
+            </span>
           )}
         </div>
       </div>
@@ -279,7 +277,8 @@ function LandingPagePreview({ store, variant }) {
           <Link2 className="mt-0.5 h-3.5 w-3.5 shrink-0" />
           <p className="break-all">
             <span className="font-medium">Lien magasin simulé pour la démo :</span>{" "}
-            {store.store_url}
+            {/* Non-clickable text only — never a real link to the demo URL. */}
+            <StoreUrlText url={store.store_url} className="break-all" />
           </p>
         </div>
       )}
