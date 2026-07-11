@@ -616,3 +616,113 @@ En résumé : **les URLs magasins sont désormais affichées en texte non
 cliquable partout** (DCO, magasins, étape magasins du wizard, popup carte),
 via le composant `StoreUrlText`. Aucune n'ouvre plus marjane.ma /
 carrefour.ma.
+
+---
+
+## Jour 3 — Tests fonctionnels et corrections
+
+> Passe de **validation fonctionnelle** de bout en bout de la Semaine 6
+> (branche `test/week6-functional-validation`), sans nouvelle fonctionnalité,
+> sans refonte visuelle et sans base de données réelle. Objectif : confirmer
+> que le parcours complet reste cohérent et que les corrections des jours 1-2
+> tiennent toujours. Tests menés dans le navigateur (frontend `:5173` +
+> backend `:8000` réellement lancés).
+
+### Éléments testés
+
+**Authentification & navigation**
+- Connexion (rôle Admin), déconnexion, persistance de session
+  (`localStorage`).
+- Garde de route : accès à `/reporting` sans session → redirection vers
+  `/login` ✅.
+- Les 7 routes principales atteignables et rendues correctement :
+  `/dashboard`, `/campagnes`, `/campagnes/nouvelle`, `/magasins`, `/dco`,
+  `/reporting`, `/compte`.
+- Sidebar : l'élément actif est bien surligné sur chaque page ; fil d'Ariane
+  (breadcrumb) et titre de page cohérents partout.
+- Route inconnue (`/xyz-inexistant-123`) → redirection vers `/dashboard`
+  (pas de page blanche) ✅.
+
+**Parcours création de campagne (complet)**
+- `/campagnes` → « Créer une campagne » → `/campagnes/nouvelle`.
+- Étape 1 (infos générales) → 2 (ciblage : Mobile + Android) → 3 (formats) →
+  4 (magasins : import CSV, analyse `POST /api/stores/import/preview` → 200,
+  « Tout sélectionner » → 2 magasins) → 5 (catégories + **résumé**).
+- Le **résumé** (« Résumé de la campagne ») affiche correctement toutes les
+  données saisies, y compris « MAGASINS CIBLÉS (2) » avec ville et rayon par
+  magasin — la sélection de magasins se propage bien jusqu'au résumé.
+- « Enregistrer le brouillon » → `POST /api/campaigns/drafts` → 201, message
+  « Brouillon enregistré. » → retour `/campagnes` → le brouillon apparaît
+  dans « Vos brouillons » ✅.
+- **Validation inter-étapes vérifiée** : « Créer la campagne » sans format
+  sélectionné renvoie sur l'étape Formats avec le message « Veuillez corriger
+  les champs signalés… » (la validation bloque bien) ✅.
+
+**DCO**
+- Upload d'un visuel → « Enregistrer les créatives » (`POST /api/dco/creatives`
+  → 201) → « Générer toutes les variantes » → « Galerie des variantes (2) »,
+  « Comparaison par magasin » et « Landing pages personnalisées » présentes.
+- Prévisualisation d'une landing page + bouton « Voir la fiche magasin » :
+  **aucune navigation externe**, `window.open` jamais appelé, l'encart
+  « Lien magasin simulé pour la démo » s'affiche en interne ✅.
+
+**Reporting**
+- Filtre Période 30 j → 7 j : les 4 KPI se recalculent (ex. Impressions
+  1,6M → 366k) ✅.
+- Filtre Ville « Rabat » : le tableau se limite aux 2 magasins de Rabat ✅.
+- Sections présentes : courbe « Évolution quotidienne », barres
+  « Performance par… », carte des zones de diffusion, tableau triable.
+- Export CSV vérifié au niveau des octets : BOM UTF-8 (`EF BB BF`), ligne
+  `sep=;`, en-têtes et séparateur `;`, décimales à la virgule — lisible dans
+  Excel FR ✅.
+
+**Gestion du compte**
+- Onglet **Annonceurs** : 4 lignes, recherche + filtre statut, fiche
+  détaillée (secteur, adresse, ville, email, téléphone, site web), bouton
+  « Modifier » (admin).
+- **Modification** annonceur : changement du secteur → « Enregistrer »
+  (`PATCH /api/advertisers/1`) → persistance confirmée côté backend, puis
+  **valeur remise à l'origine** (aucune donnée de test laissée) ✅.
+- Onglet **Utilisateurs** : 4 utilisateurs, bouton « Ajouter », filtre par
+  rôle fonctionnel (rôle Admin → 1 ligne) ✅.
+- Onglet **Paramètres** : charge bien les **paramètres globaux du compte**
+  depuis `GET /api/account-settings` (company_name « SBS Data Factory », MAD,
+  Africa/Casablanca, fr) — **pas** les données d'un annonceur (ex. Marjane) ;
+  « Enregistrer les paramètres » (`PATCH /api/account-settings`) → message de
+  succès ✅.
+
+**Liens externes magasins (contrôle de non-régression Jour 2)**
+- `/dco` (galerie + comparaison), `/magasins` (tableau) et l'étape magasins
+  du wizard : `document.querySelectorAll('a')` filtré sur `marjane.ma` /
+  `carrefour.ma` = **0 lien cliquable**, les URLs sont des `<span>` non
+  cliquables. Aucune ouverture involontaire de marjane.ma / carrefour.ma ✅.
+
+**Santé technique**
+- `npm run lint` ✅ et `npm run build` ✅ (0 warning) en début de passe.
+- **Zéro erreur console** et **zéro requête réseau en échec** sur l'ensemble
+  du parcours.
+
+### Bugs trouvés
+
+- **Aucun bug fonctionnel** trouvé pendant cette passe. Les corrections des
+  jours 1-2 (paramètres globaux du compte, neutralisation des liens externes
+  magasins, lien « Voir tout » du Dashboard → `/campagnes`) sont toujours en
+  place et opérationnelles.
+
+### Corrections appliquées
+
+- Aucune correction de code nécessaire : le parcours complet est cohérent et
+  fonctionnel. Seul ce document a été mis à jour (ajout de la présente
+  section Jour 3).
+
+### Validations restantes
+
+- Persistance réelle en base de données (PostgreSQL) — hors périmètre
+  (données encore mockées / en mémoire, réinitialisées au redémarrage du
+  backend), prévu pour une étape ultérieure.
+- Tests d'accès en **lecture seule** approfondis pour les rôles
+  `media_buyer` / `lecteur` (cette passe a été menée en rôle Admin ; le
+  cloisonnement `isAdmin` avait déjà été validé au Jour 1).
+- Envoi réel d'e-mails d'invitation / de notification (actuellement simulé).
+- Tests automatisés (unitaires / e2e) — la validation reste manuelle à ce
+  stade.
