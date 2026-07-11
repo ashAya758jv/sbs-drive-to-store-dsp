@@ -783,7 +783,7 @@ carrefour.ma.
   aujourd'hui (PostgreSQL si disponible, sinon SQLite local
   `backend/.local/campaign_drafts.db`, ignoré par Git) — signalé comme
   exception au reste de l'API (mock en mémoire).
-- Aucune fausse route ni faux endpoint n'a été documenté : la liste des 23
+- Aucune fausse route ni faux endpoint n'a été documenté : la liste des 24
   endpoints correspond exactement à ce qui est enregistré dans
   `backend/app/routes/__init__.py` au moment de la rédaction.
 
@@ -799,3 +799,72 @@ carrefour.ma.
 - Aligner, à terme, `README.md` et `backend/README.md` (encore au niveau
   Semaine 2 pour le premier, liste d'endpoints partielle pour le second) sur
   le contenu de cette documentation technique.
+
+---
+
+## Jour 5 — Préparation de la démonstration finale
+
+> Passe de **documentation uniquement** (branche `docs/week6-demo-preparation`) :
+> aucun fichier de code frontend ou backend modifié, aucun comportement de
+> l'application changé. Objectif : préparer un support complet pour la
+> démonstration finale devant l'encadrante SBS, basé exclusivement sur les
+> fonctionnalités réellement présentes dans le code (vérifiées par relecture
+> du code et par recoupement avec `docs/documentation-technique.md`).
+
+### Travail réalisé
+
+- **Scénario de démo préparé** : création de
+  `docs/scenario-demonstration-finale.md` — objectif de la démo, prérequis,
+  commandes de lancement backend/frontend, parcours en 9 étapes (connexion →
+  dashboard → gestion des campagnes → création de campagne → import/
+  validation des magasins → DCO/variantes → reporting complet → gestion du
+  compte → documentation technique/Swagger), avec pour chaque étape ce qu'il
+  faut montrer, un texte oral court et les points techniques à mentionner,
+  puis les limites actuelles du prototype et une conclusion.
+- **Checklist de démo préparée** : création de
+  `docs/checklist-demonstration-finale.md` — checklists avant / pendant /
+  après la démo, tableau des erreurs possibles avec solution rapide (backend
+  non lancé, frontend non lancé, port occupé, page blanche, cache
+  navigateur, export CSV, erreur API), et un ordre recommandé de 12 captures
+  d'écran pour préparer des slides.
+- **Parcours de bout en bout prêt** : le scénario a été construit et
+  recoupé avec le code réel (routes frontend `AppRouter.jsx`, endpoints
+  backend `routes/__init__.py`), pas seulement avec la documentation déjà
+  écrite, pour garantir qu'il correspond exactement à ce qui peut être
+  montré en direct.
+- **Aucun changement fonctionnel dans le code** : seuls des fichiers de
+  documentation ont été créés/modifiés — vérifié avec `git status` en fin de
+  tâche (voir « Fichiers modifiés / créés » ci-dessous).
+
+### Vérifications d'honnêteté effectuées avant rédaction
+
+Pour respecter la consigne de transparence, plusieurs affirmations ont été
+vérifiées directement dans le code avant d'être inscrites dans le scénario :
+
+- Confirmé par recherche dans `frontend/src` : la page `/campagnes` **n'appelle
+  jamais** `GET /api/campaigns` — la section « Toutes les campagnes »
+  affiche des données mockées côté frontend (`data/mockData.js`), seule la
+  section « Vos brouillons » est réellement branchée à l'API
+  (`GET/POST /api/campaigns/drafts`). Ce point est explicitement signalé
+  dans le scénario plutôt que présenté comme entièrement dynamique.
+- Reconfirmé que les brouillons de campagne restent la **seule donnée
+  réellement persistée** (PostgreSQL ou repli SQLite local), tout le reste
+  de l'API étant en mémoire et réinitialisé au redémarrage du backend.
+- Correction d'une coquille héritée du Jour 4 dans ce même fichier
+  (« la liste des 23 endpoints » → **24**, nombre réellement enregistré
+  dans `backend/app/routes/__init__.py`).
+
+### Fichiers modifiés / créés (Jour 5)
+
+- `docs/scenario-demonstration-finale.md` (**nouveau**)
+- `docs/checklist-demonstration-finale.md` (**nouveau**)
+- `docs/etat-avancement-semaine-6.md` (cette section, + correction de la
+  coquille « 23 » → « 24 » endpoints dans la section Jour 4)
+
+### Validations restantes
+
+- Répéter le scénario une fois en conditions réelles (backend + frontend
+  fraîchement relancés) avant la démonstration officielle, pour valider les
+  minutages et les textes oraux.
+- Mettre à jour `docs/scenario-demonstration-finale.md` si de nouvelles
+  fonctionnalités sont ajoutées avant la date de la démo.
