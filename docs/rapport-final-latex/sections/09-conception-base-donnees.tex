@@ -1,0 +1,77 @@
+%======================= CONCEPTION BASE DE DONNÉES =========================
+\chapter{Conception de la base de données}
+
+\section{Démarche}
+
+Bien que le prototype fonctionne aujourd'hui sur des données \emph{mockées},
+un \textbf{schéma de base de données cible} a été conçu et versionné, afin de
+préparer le passage à une base \textbf{PostgreSQL} réelle sans réécrire les
+routes. Ce schéma est décrit en détail dans le dépôt
+(\texttt{docs/schema-base-de-donnees.md}) et matérialisé par des fichiers de
+migration SQL (\texttt{database/migrations/}). Les modèles \textbf{SQLAlchemy}
+du backend en constituent une première traduction.
+
+\section{Entités logiques principales}
+
+Le tableau~\ref{tab:entites} présente les entités logiques du domaine, leur
+rôle et leur état de mise en \oe uvre actuel, en toute transparence.
+
+\begin{table}[H]
+\centering
+\caption{Entités logiques et état actuel}
+\label{tab:entites}
+\small
+% Première colonne élargie : les noms d'entités (ex. campaign_drafts) sont
+% en police à chasse fixe et ne doivent pas déborder sur la colonne voisine.
+\begin{tabularx}{\textwidth}{@{}p{3.1cm}L p{3.4cm}@{}}
+\toprule
+\textbf{Entité} & \textbf{Rôle} & \textbf{État actuel} \\
+\midrule
+\texttt{users} & Comptes de la plateforme (rôle et statut). & Mocké (en mémoire). \\
+\texttt{advertisers} & Annonceurs clients, propriétaires des campagnes et magasins. & Mocké (en mémoire). \\
+\texttt{campaigns} & Campagnes publicitaires drive-to-store. & Mocké (en mémoire). \\
+\texttt{campaign\_drafts} & Brouillons produits par l'assistant de création. & \textbf{Réellement persisté} (PostgreSQL si disponible, sinon SQLite local). \\
+\texttt{stores} & Magasins (points de vente) d'un annonceur. & Mocké (en mémoire). \\
+\texttt{creatives} & Visuels / créatives d'une campagne. & Métadonnées en mémoire (aucun fichier stocké). \\
+\texttt{statistics} & Statistiques de performance par campagne / magasin. & Mocké (agrégé uniquement pour le tableau de bord). \\
+Paramètres de compte & Préférences du compte (devise, fuseau, langue, notifications). & En mémoire (deux registres distincts : par annonceur et global). \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Relations}
+
+Les relations principales du schéma cible sont les suivantes :
+
+\begin{itemize}
+  \item un \textbf{annonceur} possède plusieurs \textbf{campagnes} et
+        plusieurs \textbf{magasins} (relations 1--N) ;
+  \item une \textbf{campagne} appartient à un seul annonceur, et porte
+        plusieurs \textbf{créatives} et \textbf{statistiques} ;
+  \item une \textbf{statistique} est rattachée à une campagne et,
+        éventuellement, à un magasin (rattachement optionnel) ;
+  \item un \textbf{brouillon de campagne} peut être rattaché à un annonceur
+        (rattachement optionnel) ;
+  \item la table \texttt{users} est, à ce stade, \textbf{indépendante} des
+        autres (pas encore de clé étrangère vers un annonceur au niveau base).
+\end{itemize}
+
+\section{Choix de conception}
+
+Le schéma cible retient des choix classiques et robustes : identifiants
+auto-incrémentés, types numériques précis pour les montants, dates avec fuseau
+horaire, contraintes de validation (valeurs autorisées, montants positifs,
+cohérence des dates), et index sur les colonnes les plus filtrées (clés
+étrangères, dates). Les brouillons de campagne stockent les champs principaux
+en colonnes classiques et les sélections détaillées de l'assistant (appareils,
+systèmes, formats, catégories) dans une colonne \textbf{JSON}, ce qui offre de
+la souplesse sans migration à chaque évolution du formulaire.
+
+\section{État honnête}
+
+Il importe de rappeler que \textbf{PostgreSQL n'est pas branché en production}
+aujourd'hui. Les modèles et migrations existent et sont cohérents, mais l'API
+sert des données en mémoire, à l'exception notable des \textbf{brouillons de
+campagne}, seuls réellement persistés. L'alignement complet des modèles sur le
+schéma cible (par exemple l'ajout d'un mot de passe haché pour les
+utilisateurs) fait partie des perspectives.

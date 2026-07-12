@@ -1,0 +1,77 @@
+%============================== MÉTHODOLOGIE ================================
+\chapter{Méthodologie de travail}
+
+\section{Une démarche itérative et hebdomadaire}
+
+Le développement a suivi une \textbf{démarche itérative}, rythmée par des
+\textbf{cycles hebdomadaires}. Chaque semaine ciblait un ou plusieurs modules
+cohérents, développés puis validés avant de passer aux suivants. Cette
+approche présente plusieurs avantages : elle limite les risques (un module
+défaillant est isolé), elle rend l'avancement \textbf{traçable}, et elle permet
+un retour régulier avec l'encadrante.
+
+Le tableau~\ref{tab:planning} résume la progression des modules livrés au fil
+des semaines.
+
+\begin{table}[H]
+\centering
+\caption{Progression itérative du projet}
+\label{tab:planning}
+\begin{tabularx}{\textwidth}{@{}p{2.6cm}L@{}}
+\toprule
+\textbf{Étape} & \textbf{Modules / travaux principaux} \\
+\midrule
+Semaine 2 & Fondation frontend : structure, authentification simulée, rôles, layout, tableau de bord initial. \\
+Semaine 3 & Assistant de création de campagne (formulaire multi-étapes). \\
+Semaine 4 & Import de la base de magasins, carte interactive, sélection et \emph{geofencing}, intégration au parcours de campagne. \\
+Semaine 5 & DCO : upload de visuels, génération de variantes, \emph{landing pages} simulées ; reporting (indicateurs, graphiques, carte, tableau, export CSV). \\
+Semaine 6 & Gestion du compte (annonceurs, utilisateurs, paramètres), intégration de bout en bout, corrections, documentation technique, préparation et livraison de la démonstration finale. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Flux de travail Git / GitHub}
+
+Le code et la documentation sont versionnés avec \textbf{Git} et hébergés sur
+\textbf{GitHub}. Le flux de travail repose sur :
+
+\begin{itemize}
+  \item une \textbf{branche par sujet} (fonctionnalité, correctif ou
+        documentation), nommée de façon explicite (par exemple
+        \texttt{feat/week6-account-management},
+        \texttt{docs/week6-technical-documentation},
+        \texttt{docs/final-report}) ;
+  \item des \textbf{\emph{pull requests}} pour intégrer chaque branche, ce qui
+        matérialise chaque incrément et conserve un historique lisible ;
+  \item des \textbf{messages de commit} et des libellés de PR décrivant le
+        contenu de chaque étape.
+\end{itemize}
+
+La figure~\ref{fig:github} présente le dépôt GitHub du projet et son
+historique.
+
+\section{Validation après chaque module}
+
+Chaque module a fait l'objet d'une \textbf{validation fonctionnelle} avant
+d'être considéré comme terminé :
+
+\begin{itemize}
+  \item vérification du \textbf{build} du frontend (\texttt{npm run build}) et
+        de l'analyse statique (\texttt{npm run lint}) ;
+  \item vérification de la \textbf{santé du backend}
+        (\texttt{GET /api/health}) et des endpoints via \textbf{Swagger} ;
+  \item \textbf{parcours manuel} dans le navigateur (navigation, formulaires,
+        cas d'erreur) ;
+  \item contrôle de \textbf{non-régression} sur les modules déjà validés.
+\end{itemize}
+
+Le détail de ces validations est consigné dans le journal d'avancement du
+dépôt (fichiers \texttt{docs/etat-avancement-semaine-*.md}).
+
+\section{Documentation continue et préparation de la démonstration}
+
+La documentation a été produite \textbf{en continu}, et non reléguée en fin de
+projet. Le dépôt contient notamment une documentation technique complète, un
+schéma de base de données, un scénario de démonstration, une checklist de
+démonstration et un document de livraison finale. Cette production
+documentaire fait l'objet d'un chapitre dédié.

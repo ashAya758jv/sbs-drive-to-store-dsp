@@ -1,0 +1,234 @@
+%==============================================================================
+%  SBS Data Factory — Plateforme Drive-to-Store DSP
+%  Rapport de Projet de Fin d'Année (PFA) / Stage
+%  Auteure : Aya ACHIBAN — ENSAM Casablanca — Année universitaire 2025/2026
+%
+%  Compilation recommandée (voir README.md) :
+%     xelatex rapport-final-stage.tex   (deux passes pour la table des matières)
+%  Compatible également avec pdfLaTeX (préambule conditionnel via iftex).
+%  Aucun paquet nécessitant --shell-escape n'est utilisé.
+%==============================================================================
+\documentclass[11pt,a4paper,oneside]{report}
+
+%------------------------------------------------------------------------------
+% Moteur : préambule conditionnel (compatible pdfLaTeX et XeLaTeX/LuaLaTeX)
+%------------------------------------------------------------------------------
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[utf8]{inputenc}
+  \usepackage[T1]{fontenc}
+  \usepackage{lmodern}
+\else
+  \usepackage{fontspec}
+\fi
+
+%------------------------------------------------------------------------------
+% Langue
+%------------------------------------------------------------------------------
+\usepackage[french]{babel}
+\usepackage{csquotes}
+
+% Libellés français normalisés : « Tableau » plutôt que « Table » pour les
+% légendes, et titres homogènes pour les listes de figures et de tableaux.
+\addto\captionsfrench{%
+  \renewcommand{\tablename}{Tableau}%
+  \renewcommand{\listfigurename}{Liste des figures}%
+  \renewcommand{\listtablename}{Liste des tableaux}%
+}
+
+% Les noms propres techniques ne doivent jamais être coupés en fin de ligne.
+\hyphenation{ENSAM PostgreSQL OpenStreetMap FastAPI JavaScript Swagger
+  OpenAPI GitHub Recharts Leaflet Pydantic SQLAlchemy Tailwind Uvicorn}
+
+%------------------------------------------------------------------------------
+% Mise en page
+%------------------------------------------------------------------------------
+\usepackage[a4paper,top=2.6cm,bottom=2.6cm,left=2.6cm,right=2.4cm,headheight=15pt]{geometry}
+\usepackage{setspace}
+\onehalfspacing
+
+% Micro-typographie : justification plus régulière, moins de coupures et
+% d'espaces disgracieux (compatible pdfLaTeX et XeLaTeX).
+\usepackage{microtype}
+
+% Tolérance de justification accrue (préférable à \sloppy, qui produit des
+% espaces inter-mots trop lâches).
+\tolerance=2000
+\emergencystretch=1.5em
+
+%------------------------------------------------------------------------------
+% Graphismes et couleurs
+%------------------------------------------------------------------------------
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric,arrows.meta,positioning,fit,backgrounds}
+
+% Chemins d'images relatifs à la racine du projet Overleaf (dossier auto-contenu).
+\graphicspath{{rapport-final-assets/screenshots/}{rapport-final-assets/logos/}}
+
+% Palette SBS : marine sombre + accents violet / or (sobre)
+\definecolor{sbsnavy}{HTML}{0F172A}
+\definecolor{sbspurple}{HTML}{5A2FBE}
+\definecolor{sbspurplesoft}{HTML}{7E51E8}
+\definecolor{sbsgold}{HTML}{C9A227}
+\definecolor{sbslight}{HTML}{F4F1FE}
+\definecolor{sbsgray}{HTML}{475569}
+\definecolor{sbsline}{HTML}{CBD5E1}
+
+%------------------------------------------------------------------------------
+% Tableaux
+%------------------------------------------------------------------------------
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{enumitem}
+\setlist{itemsep=2pt,topsep=3pt}
+
+% Colonne X justifiée à gauche pour tabularx
+\newcolumntype{L}{>{\raggedright\arraybackslash}X}
+
+%------------------------------------------------------------------------------
+% Code source (listings — pas de shell-escape)
+%------------------------------------------------------------------------------
+\usepackage{listings}
+\lstdefinestyle{sbscode}{
+  basicstyle=\ttfamily\footnotesize,
+  backgroundcolor=\color{sbslight},
+  frame=single,
+  rulecolor=\color{sbsline},
+  keywordstyle=\color{sbspurple}\bfseries,
+  commentstyle=\color{sbsgray}\itshape,
+  stringstyle=\color{sbsgold!80!black},
+  numbers=none,
+  breaklines=true,
+  showstringspaces=false,
+  columns=fullflexible,
+  keepspaces=true,
+  xleftmargin=8pt,
+  xrightmargin=4pt,
+  aboveskip=8pt,
+  belowskip=8pt,
+}
+\lstset{style=sbscode}
+
+\ifPDFTeX
+  % pdfLaTeX : sans cette table, les caractères accentués des listings sont
+  % silencieusement perdus (« Créer » devenait « Crer » dans le PDF).
+  \lstset{literate=%
+    {é}{{\'e}}1 {è}{{\`e}}1 {ê}{{\^e}}1 {ë}{{\"e}}1
+    {à}{{\`a}}1 {â}{{\^a}}1 {î}{{\^i}}1 {ï}{{\"i}}1
+    {ô}{{\^o}}1 {ö}{{\"o}}1 {ù}{{\`u}}1 {û}{{\^u}}1 {ü}{{\"u}}1
+    {ç}{{\c{c}}}1 {É}{{\'E}}1 {È}{{\`E}}1 {À}{{\`A}}1 {Ç}{{\c{C}}}1
+  }
+\fi
+
+%------------------------------------------------------------------------------
+% Titres de sections/chapitres
+%------------------------------------------------------------------------------
+\usepackage{titlesec}
+\titleformat{\chapter}[display]
+  {\normalfont\bfseries}
+  {\filright\large\color{sbspurple}\MakeUppercase{\chaptertitlename}\ \thechapter}
+  {0.6ex}
+  {\color{sbsnavy}\huge\filright}
+  [\vspace{0.6ex}{\color{sbsgold}\titlerule[1.2pt]}]
+\titlespacing*{\chapter}{0pt}{6pt}{22pt}
+
+\titleformat{\section}
+  {\normalfont\large\bfseries\color{sbsnavy}}{\thesection}{0.6em}{}
+\titleformat{\subsection}
+  {\normalfont\normalsize\bfseries\color{sbspurple}}{\thesubsection}{0.6em}{}
+
+%------------------------------------------------------------------------------
+% En-têtes / pieds de page
+%------------------------------------------------------------------------------
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\color{sbsgray}\nouppercase{\leftmark}}
+\fancyhead[R]{\small\color{sbsgray}SBS Drive-to-Store DSP}
+\fancyfoot[C]{\small\color{sbsnavy}\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0pt}
+\renewcommand{\headrule}{\hbox to\headwidth{\color{sbsline}\leaders\hrule height \headrulewidth\hfill}}
+
+\fancypagestyle{plain}{%
+  \fancyhf{}
+  \fancyfoot[C]{\small\color{sbsnavy}\thepage}
+  \renewcommand{\headrulewidth}{0pt}
+}
+
+%------------------------------------------------------------------------------
+% Légendes de figures / tableaux
+%------------------------------------------------------------------------------
+\captionsetup{font=small,labelfont={bf,color=sbspurple},labelsep=colon,
+  justification=centering}
+
+%------------------------------------------------------------------------------
+% Liens hypertextes (chargé tardivement)
+%------------------------------------------------------------------------------
+\PassOptionsToPackage{hyphens}{url}% URLs longues : autoriser la coupure
+\usepackage{hyperref}
+\hypersetup{
+  unicode=true,
+  colorlinks=true,
+  linkcolor=sbsnavy,
+  citecolor=sbspurple,
+  urlcolor=sbspurple,
+  pdftitle={Rapport PFA - SBS Data Factory Drive-to-Store DSP},
+  pdfauthor={Aya ACHIBAN},
+  pdfsubject={Plateforme web de gestion de campagnes Drive-to-Store},
+  bookmarksnumbered=true,
+}
+
+%==============================================================================
+\begin{document}
+
+%--------------------------- Page de garde ------------------------------------
+\input{sections/00-page-garde}
+
+%--------------------------- Pages liminaires ---------------------------------
+\pagenumbering{roman}
+\setcounter{page}{1}
+
+\input{sections/01-remerciements}
+\input{sections/02-resume-abstract}
+
+\cleardoublepage
+\tableofcontents
+\cleardoublepage
+\listoffigures
+\cleardoublepage
+\listoftables
+
+%--------------------------- Corps du rapport ---------------------------------
+\cleardoublepage
+\pagenumbering{arabic}
+\setcounter{page}{1}
+
+\input{sections/03-introduction}
+\input{sections/04-organisme-accueil}
+\input{sections/05-problematique-objectifs}
+\input{sections/06-methodologie}
+\input{sections/07-analyse-fonctionnelle}
+\input{sections/08-architecture-technique}
+\input{sections/09-conception-base-donnees}
+\input{sections/10-realisation-modules}
+\input{sections/11-tests-validation}
+\input{sections/12-documentation-livraison}
+\input{sections/13-limites-perspectives}
+\input{sections/14-conclusion}
+
+%--------------------------- Bibliographie ------------------------------------
+\input{sections/16-bibliographie}
+
+%--------------------------- Annexes ------------------------------------------
+\appendix
+\input{sections/15-annexes}
+
+\end{document}

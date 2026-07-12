@@ -1,0 +1,66 @@
+%======================= DOCUMENTATION ET LIVRAISON =========================
+\chapter{Documentation et livraison}
+
+\section{Une documentation produite en continu}
+
+La documentation a accompagné le développement à chaque étape, plutôt que
+d'être produite en fin de projet. Elle est regroupée dans le dossier
+\texttt{docs/} du dépôt et couvre à la fois les aspects techniques,
+fonctionnels et organisationnels. Le tableau~\ref{tab:docs} en présente les
+principaux documents.
+
+\begin{table}[H]
+\centering
+\caption{Documents de référence du dépôt}
+\label{tab:docs}
+\small
+% Noms de fichiers composés avec \path : coupure autorisée aux tirets et
+% points, ce qui évite tout débordement dans la colonne voisine.
+\begin{tabularx}{\textwidth}{@{}p{6.2cm}L@{}}
+\toprule
+\textbf{Document} & \textbf{Contenu} \\
+\midrule
+\path{documentation-technique.md} & Architecture, structure des dossiers, installation, 24~endpoints avec exemples, schéma des entités, limites, pistes de déploiement. \\
+\path{schema-base-de-donnees.md} & Schéma PostgreSQL cible (tables, contraintes, relations). \\
+\path{scenario-demonstration-finale.md} & Script de démonstration en neuf étapes, texte oral et points techniques. \\
+\path{checklist-demonstration-finale.md} & Checklists avant, pendant et après la démonstration ; erreurs courantes et solutions. \\
+\path{livraison-finale-semaine-6.md} & Document de synthèse de livraison, prêt à être remis à l'encadrante. \\
+\path{etat-avancement-semaine-6.md} & Journal détaillé, jour par jour, de la semaine~6. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Documentation de l'API}
+
+L'API est documentée de deux manières complémentaires : de façon
+\textbf{interactive} via \textbf{Swagger/OpenAPI} (accessible à \texttt{/docs},
+avec exécution directe des endpoints), et de façon \textbf{écrite} dans
+\texttt{documentation-technique.md}, qui recense l'ensemble des endpoints avec
+leur méthode, leur rôle et un exemple de réponse. Ce double niveau garantit
+qu'un développeur reprenant le projet dispose à la fois d'une référence testable
+et d'une référence rédigée.
+
+\section{Préparation de la démonstration}
+
+En vue de la présentation finale, deux documents dédiés ont été produits :
+
+\begin{itemize}
+  \item un \textbf{scénario de démonstration} détaillant, en neuf étapes, le
+        parcours exact à montrer, avec pour chaque étape un texte oral court et
+        les points techniques à mentionner ;
+  \item une \textbf{checklist de démonstration} regroupant les vérifications
+        avant, pendant et après la démo, un tableau des incidents courants
+        (backend non lancé, port occupé, page blanche, cache navigateur,
+        export CSV, erreur API) avec leur solution rapide, ainsi qu'un ordre
+        recommandé de captures d'écran pour préparer des supports.
+\end{itemize}
+
+\section{Livraison finale}
+
+La livraison finale prend la forme d'un document de synthèse
+(\texttt{livraison-finale-semaine-6.md}) reprenant le périmètre livré, les
+modules, l'état technique, les commandes de lancement, les endpoints
+principaux, les limites honnêtes et les prochaines améliorations. L'ensemble du
+code et de la documentation est versionné sur \textbf{GitHub}, chaque incrément
+ayant été intégré par \emph{pull request}, ce qui rend la livraison
+\textbf{traçable} et \textbf{reproductible}.

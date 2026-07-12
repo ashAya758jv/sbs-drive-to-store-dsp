@@ -1,0 +1,64 @@
+%============================== INTRODUCTION =================================
+\chapter{Introduction générale}
+
+\section{Contexte : la publicité digitale}
+
+La publicité digitale s'est imposée, en quelques années, comme un levier
+central des stratégies de communication des annonceurs. Elle repose sur des
+plateformes technologiques capables de diffuser des messages ciblés auprès
+d'audiences précises, puis de mesurer finement leurs performances. Dans cet
+écosystème, les \emph{Demand-Side Platforms} (DSP) occupent une place
+particulière : ce sont les plateformes côté \og demande \fg{} qui permettent
+aux annonceurs (ou aux agences qui les représentent) de planifier, configurer,
+diffuser et suivre leurs campagnes publicitaires depuis une interface unique.
+
+\section{Les campagnes \emph{drive-to-store}}
+
+Parmi les objectifs publicitaires, le \textbf{drive-to-store} vise un résultat
+très concret : transformer une exposition publicitaire en ligne en une
+\textbf{visite physique dans un point de vente}. Ce type de campagne est
+particulièrement pertinent pour les enseignes disposant d'un réseau de
+magasins (grande distribution, banques, hard-discount, etc.), qui cherchent à
+générer du trafic en boutique plutôt que de simples clics.
+
+Une campagne \emph{drive-to-store} mobilise plusieurs ingrédients : un
+\textbf{ciblage géographique} autour des magasins (le \emph{geofencing}), des
+\textbf{créatives adaptées} à chaque point de vente (nom, adresse, horaires),
+et un \textbf{reporting} orienté sur la fréquentation et la performance locale.
+La coordination de ces éléments justifie l'existence d'une plateforme dédiée.
+
+\section{Importance d'une plateforme de gestion de campagnes}
+
+Gérer manuellement l'ensemble de ces étapes --- création de campagne, import
+des magasins, définition des zones de diffusion, production des variantes
+créatives, suivi des indicateurs --- serait fastidieux et source d'erreurs.
+Une \textbf{plateforme centralisée} apporte plusieurs bénéfices :
+
+\begin{itemize}
+  \item un \textbf{parcours guidé} et cohérent, de la création jusqu'au
+        reporting ;
+  \item la \textbf{réutilisation} des données (magasins, annonceurs) d'un
+        module à l'autre ;
+  \item une \textbf{maîtrise des accès} par rôle (administration, achat média,
+        lecture seule) ;
+  \item une \textbf{visualisation} claire des performances et des zones de
+        diffusion.
+\end{itemize}
+
+\section{Motivation et périmètre du projet}
+
+Le présent projet consiste à concevoir et développer, pour SBS Data Factory,
+un \textbf{prototype de plateforme Drive-to-Store DSP} illustrant ce parcours
+de bout en bout. Il s'agit d'une application web fullstack, et non d'un
+\emph{bidder} temps réel (RTB) ni d'un backend OpenRTB : l'accent est mis sur
+l'\textbf{expérience de gestion de campagne} et sur une \textbf{architecture
+logicielle propre et évolutive}, capable d'accueillir ultérieurement une base
+de données réelle et une authentification sécurisée.
+
+Ce rapport présente successivement l'organisme d'accueil, la problématique et
+les objectifs, la méthodologie de travail, l'analyse fonctionnelle,
+l'architecture technique, la conception de la base de données, la réalisation
+module par module, les tests et validations, la documentation et la livraison,
+puis les limites et perspectives, avant de conclure. Un souci constant de
+\textbf{transparence} guide l'ensemble : les parties simulées ou \emph{mockées}
+du prototype sont explicitement signalées.

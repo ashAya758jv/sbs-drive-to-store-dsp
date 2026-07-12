@@ -1,0 +1,47 @@
+%========================= BIBLIOGRAPHIE / WEBOGRAPHIE ======================
+% Chapitre non numéroté : une seule entrée dans la table des matières (via
+% \addcontentsline) et marques d'en-tête posées explicitement. La liste est
+% composée manuellement (pas d'environnement thebibliography) afin d'éviter
+% le double titre « Bibliographie » et l'en-tête erroné sur les pages
+% suivantes que cet environnement génère dans la classe report.
+\chapter*{Bibliographie et webographie}
+\addcontentsline{toc}{chapter}{Bibliographie et webographie}
+\markboth{Bibliographie et webographie}{Bibliographie et webographie}
+
+Les références ci-dessous renvoient aux documentations officielles des
+technologies utilisées dans le projet ; il s'agit d'une webographie, aucune
+source académique n'étant nécessaire au sujet traité. L'ensemble de ces
+ressources en ligne a été consulté le 11~juillet~2026. Une version
+\texttt{BibTeX} de ces références est fournie dans le fichier
+\texttt{references.bib} accompagnant ce rapport.
+
+\begin{enumerate}[label={[\arabic*]}, leftmargin=1.5cm, itemsep=4pt]
+  \item React --- \emph{Documentation officielle}.
+        \url{https://react.dev/}
+  \item Vite --- \emph{Next Generation Frontend Tooling}.
+        \url{https://vitejs.dev/}
+  \item React Router --- \emph{Documentation officielle}.
+        \url{https://reactrouter.com/}
+  \item FastAPI --- \emph{Documentation officielle}.
+        \url{https://fastapi.tiangolo.com/}
+  \item Pydantic --- \emph{Data validation using Python type hints}.
+        \url{https://docs.pydantic.dev/}
+  \item OpenAPI Initiative --- \emph{OpenAPI Specification}.
+        \url{https://www.openapis.org/}
+  \item Swagger --- \emph{API Documentation \& Design Tools}.
+        \url{https://swagger.io/}
+  \item SQLAlchemy --- \emph{The Database Toolkit for Python}.
+        \url{https://www.sqlalchemy.org/}
+  \item PostgreSQL --- \emph{The World's Most Advanced Open Source Relational
+        Database}. \url{https://www.postgresql.org/}
+  \item Leaflet --- \emph{An open-source JavaScript library for interactive
+        maps}. \url{https://leafletjs.com/}
+  \item OpenStreetMap --- \emph{Carte collaborative libre}.
+        \url{https://www.openstreetmap.org/}
+  \item Recharts --- \emph{A composable charting library built on React
+        components}. \url{https://recharts.org/}
+  \item Tailwind CSS --- \emph{A utility-first CSS framework}.
+        \url{https://tailwindcss.com/}
+  \item GitHub --- \emph{Plateforme d'hébergement et de collaboration Git}.
+        \url{https://github.com/}
+\end{enumerate}

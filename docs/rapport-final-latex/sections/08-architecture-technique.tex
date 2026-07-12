@@ -1,0 +1,113 @@
+%========================== ARCHITECTURE TECHNIQUE ==========================
+\chapter{Architecture technique}
+
+\section{Vue d'ensemble}
+
+L'application repose sur deux briques indépendantes qui communiquent en
+\textbf{HTTP/JSON} : un \textbf{frontend React (Vite)} et un \textbf{backend
+FastAPI}. Une base de données \textbf{PostgreSQL} est préparée (modèles et
+migrations) mais n'est pas branchée par défaut : le backend sert des données
+\emph{mockées} en mémoire afin de rester exécutable sans infrastructure de base
+de données. La figure~\ref{fig:archi} schématise cette organisation.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  node distance=1.1cm and 1.6cm,
+  box/.style={rectangle, rounded corners=3pt, draw=sbsnavy, line width=0.8pt,
+              fill=sbslight, text width=3.5cm, align=center, minimum height=1.5cm,
+              font=\small},
+  dbbox/.style={cylinder, shape border rotate=90, aspect=0.25, draw=sbsgray,
+                dashed, line width=0.8pt, fill=white, text width=3cm,
+                align=center, minimum height=1.8cm, font=\small\itshape},
+  lbl/.style={font=\scriptsize\itshape, text=sbsgray},
+  arr/.style={-{Latex[length=2.5mm]}, line width=0.9pt, draw=sbspurple},
+]
+  \node[box] (front) {\textbf{Frontend}\\ React + Vite\\ \scriptsize localhost:5173};
+  \node[box, right=of front] (back) {\textbf{Backend}\\ FastAPI\\ \scriptsize 127.0.0.1:8000};
+  \node[dbbox, right=of back] (db) {PostgreSQL\\ (préparée,\\ non branchée)};
+
+  \draw[arr] ([yshift=4pt]front.east) -- node[lbl, above]{requêtes REST} ([yshift=4pt]back.west);
+  \draw[arr] ([yshift=-4pt]back.west) -- node[lbl, below]{JSON} ([yshift=-4pt]front.east);
+  \draw[arr, dashed, draw=sbsgray] (back.east) -- node[lbl, above, align=center]{à venir} (db.west);
+
+  \node[below=0.5cm of front, lbl, text width=3.8cm, align=center]
+    {Navigation par rôle,\\ pages et composants};
+  \node[below=0.5cm of back, lbl, text width=3.8cm, align=center]
+    {24 endpoints REST,\\ Swagger/OpenAPI,\\ données en mémoire};
+\end{tikzpicture}
+\caption{Architecture générale de la plateforme Drive-to-Store DSP}
+\label{fig:archi}
+\end{figure}
+
+\section{Architecture du frontend}
+
+Le frontend est une application \textbf{React 19} servie par \textbf{Vite}. Il
+s'appuie sur \textbf{React Router} pour la navigation, \textbf{Tailwind CSS}
+pour le style, \textbf{Recharts} pour les graphiques et \textbf{Leaflet /
+OpenStreetMap} pour la cartographie. Son organisation suit une convention
+claire :
+
+\begin{itemize}
+  \item \texttt{routes/} : déclaration des routes et des gardes d'accès
+        (\texttt{RequireAuth}, \texttt{RequireRole}) ;
+  \item \texttt{pages/} : une page par écran (Login, Dashboard, Campaigns,
+        CampaignCreate, StoreSelection, DCO, Reporting, AccountManagement) ;
+  \item \texttt{components/} : composants réutilisables regroupés par domaine
+        (\texttt{layout}, \texttt{ui}, \texttt{campaigns}, \texttt{stores},
+        \texttt{reporting}, \texttt{account}, \texttt{charts}) ;
+  \item \texttt{data/} : une couche d'accès aux données par module
+        (\texttt{campaignApi.js}, \texttt{storesApi.js}, \texttt{dcoApi.js},
+        \texttt{accountApi.js}, \texttt{reportingData.js}, \texttt{mockData.js}) ;
+  \item \texttt{lib/} : utilitaires transverses, dont le client HTTP
+        (\texttt{api.js}).
+\end{itemize}
+
+Une règle de conception importante : les pages et composants ne font
+\textbf{jamais} d'appel réseau directement ; ils passent par la couche
+\texttt{data/}, ce qui isole la logique d'accès aux données et facilitera son
+évolution.
+
+\section{Architecture du backend}
+
+Le backend est construit avec \textbf{FastAPI} et \textbf{Pydantic v2}. Il est
+organisé en couches :
+
+\begin{itemize}
+  \item \texttt{routes/} : un routeur par ressource (health, users,
+        advertisers, account\_settings, stores, store\_import, campaigns,
+        campaign\_creation, dco, statistics) ;
+  \item \texttt{schemas/} : schémas Pydantic distinguant la lecture
+        (\texttt{*Read}) de l'écriture (\texttt{*Create} / \texttt{*Update}) ;
+  \item \texttt{services/} : logique métier et accès aux données, dont
+        \texttt{mock\_data.py} (source unique de vérité en mémoire) et
+        \texttt{draft\_store.py} (persistance réelle des brouillons) ;
+  \item \texttt{models/} : modèles \textbf{SQLAlchemy} correspondant au schéma
+        PostgreSQL cible ;
+  \item \texttt{core/} : configuration (\texttt{config.py}) et énumérations
+        partagées (\texttt{enums.py}).
+\end{itemize}
+
+Les routes ne contiennent aucune logique métier : elles appellent un service,
+interceptent ses exceptions dédiées (par exemple \texttt{UserNotFoundError},
+\texttt{DuplicateEmailError}) et les traduisent en réponses HTTP explicites
+(404, 409, 422).
+
+\section{Communication et protection des routes}
+
+Le frontend appelle l'API via un client \texttt{fetch} centralisé, dont l'URL
+de base est configurable (\texttt{VITE\_API\_URL}, par défaut
+\path{http://localhost:8000/api}). Le backend autorise, via une politique
+\textbf{CORS}, les origines des serveurs de développement Vite. Côté frontend,
+la \textbf{protection des routes} est assurée par deux gardes : l'une vérifie
+qu'une session existe, l'autre que le rôle courant est autorisé pour la route
+demandée ; à défaut, l'utilisateur est redirigé (vers la connexion ou le
+tableau de bord).
+
+\section{Organisation du dépôt GitHub}
+
+Le dépôt est structuré en trois grands ensembles : \texttt{frontend/}
+(application React), \texttt{backend/} (API FastAPI) et \texttt{database/}
+(migrations SQL), complétés par un dossier \texttt{docs/} regroupant toute la
+documentation. Le versionnement par branches et \emph{pull requests}
+(figure~\ref{fig:github}) matérialise chaque incrément de développement.

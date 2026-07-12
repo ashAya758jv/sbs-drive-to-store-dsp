@@ -1,0 +1,80 @@
+%================================ RÉSUMÉ =====================================
+\chapter*{Résumé}
+\addcontentsline{toc}{chapter}{Résumé}
+\markboth{Résumé}{Résumé}
+
+Ce projet de fin d'année porte sur la conception et le développement d'un
+\textbf{prototype de plateforme web} pour \textbf{SBS Data Factory}, destiné à
+la gestion de campagnes publicitaires de type \emph{drive-to-store} --- des
+campagnes dont l'objectif est de convertir une audience digitale en
+\textbf{visites physiques en magasin}.
+
+La plateforme, nommée \textbf{Drive-to-Store DSP}, couvre l'ensemble du
+parcours métier : authentification et navigation protégée par rôle, tableau de
+bord de synthèse, gestion et création de campagnes via un assistant
+multi-étapes, import et validation de la base de magasins d'un annonceur,
+ciblage géographique (\emph{geofencing}) sur carte interactive, génération de
+créatives dynamiques (DCO) et de \emph{landing pages} personnalisées par
+magasin, reporting de performance (indicateurs, graphiques, carte, tableau et
+export CSV), ainsi qu'un module d'administration du compte (annonceurs,
+utilisateurs, paramètres).
+
+Sur le plan technique, l'application repose sur un \textbf{frontend React
+(Vite)} et un \textbf{backend FastAPI} exposant une API REST documentée via
+\textbf{Swagger/OpenAPI}. La cartographie s'appuie sur
+\textbf{Leaflet / OpenStreetMap}. Le développement a été mené de façon
+\textbf{itérative} avec un flux de travail \textbf{Git/GitHub} (branches et
+\emph{pull requests}), une validation fonctionnelle après chaque module et une
+documentation continue.
+
+Le livrable est un \textbf{prototype fonctionnel de bout en bout} : les
+données sont, pour l'essentiel, simulées (\emph{mockées}) et conservées en
+mémoire --- à l'exception des brouillons de campagne, réellement persistés
+côté backend ---, l'authentification est simulée et la base PostgreSQL est
+\emph{préparée mais non branchée en production}. Ces choix, assumés à ce stade, ont permis de valider l'intégralité
+des parcours utilisateur avant d'envisager le branchement d'une base réelle et
+d'une authentification sécurisée.
+
+\vspace{0.6cm}
+\noindent\textbf{Mots-clés :} Drive-to-Store, DSP, publicité digitale,
+React, FastAPI, geofencing, DCO, reporting, prototype web, OpenStreetMap.
+
+%================================ ABSTRACT ===================================
+% Chapitre étoilé : la classe report force un changement de page, l'Abstract
+% commence donc en haut d'une nouvelle page. En-tête et entrée de table des
+% matières propres à l'Abstract (ne montrent jamais « Résumé »).
+\chapter*{Abstract}
+\addcontentsline{toc}{chapter}{Abstract}
+\markboth{Abstract}{Abstract}
+
+This end-of-year project covers the design and development of a
+\textbf{web platform prototype} for \textbf{SBS Data Factory}, aimed at
+managing \emph{drive-to-store} advertising campaigns --- campaigns whose goal
+is to turn a digital audience into \textbf{physical in-store visits}.
+
+The platform, called \textbf{Drive-to-Store DSP}, spans the full business
+journey: authentication with role-based protected navigation, an overview
+dashboard, campaign management and a multi-step creation wizard, import and
+validation of an advertiser's store database, geographic targeting
+(\emph{geofencing}) on an interactive map, dynamic creative generation (DCO)
+with simulated per-store landing pages, performance reporting (KPIs, charts,
+map, table and CSV export), and an account administration module
+(advertisers, users, settings).
+
+Technically, the application relies on a \textbf{React (Vite) frontend} and a
+\textbf{FastAPI backend} exposing a REST API documented through
+\textbf{Swagger/OpenAPI}, with mapping powered by
+\textbf{Leaflet / OpenStreetMap}. Development followed an \textbf{iterative}
+approach with a \textbf{Git/GitHub} workflow (branches and pull requests),
+functional validation after each module, and continuous documentation.
+
+The deliverable is a \textbf{fully working end-to-end prototype}. Most data is
+\emph{mocked}/in-memory (except campaign drafts, which are actually persisted
+on the backend), authentication is simulated, and the PostgreSQL database is
+\emph{prepared but not connected in production}. These deliberate choices made
+it possible to validate all user journeys before wiring a real database and
+production-grade authentication.
+
+\vspace{0.5cm}
+\noindent\textbf{Keywords:} Drive-to-Store, DSP, digital advertising, React,
+FastAPI, geofencing, DCO, reporting, web prototype, OpenStreetMap.

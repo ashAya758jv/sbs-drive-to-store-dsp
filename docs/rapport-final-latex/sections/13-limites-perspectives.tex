@@ -1,0 +1,71 @@
+%========================= LIMITES ET PERSPECTIVES ==========================
+\chapter{Limites et perspectives}
+
+\section{Limites actuelles du prototype}
+
+Par souci de transparence, les limites du livrable sont énoncées clairement.
+Elles découlent de choix assumés, cohérents avec la nature \textbf{prototype}
+du projet.
+
+\begin{itemize}
+  \item \textbf{Prototype local} : l'application n'est pas déployée en
+        production ; elle s'exécute en environnement de développement.
+  \item \textbf{Données majoritairement mockées / en mémoire} :
+        utilisateurs, annonceurs, magasins, campagnes existantes, créatives et
+        paramètres de compte sont réinitialisés à chaque redémarrage du
+        backend. Seuls les \textbf{brouillons de campagne} sont réellement
+        persistés.
+  \item \textbf{PostgreSQL non branché en production} : les modèles et les
+        migrations existent et sont prêts, mais la base n'est pas connectée
+        par défaut.
+  \item \textbf{Authentification non \og production \fg{}} : l'authentification
+        est \emph{simulée} (aucun mot de passe vérifié, aucun jeton de session
+        réel) ; le contrôle d'accès n'est appliqué que côté frontend.
+  \item \textbf{DCO simulé} : aucun fichier de créative n'est réellement stocké
+        (métadonnées uniquement), et les \emph{landing pages} sont entièrement
+        \textbf{simulées} (pas de route publique réelle).
+  \item \textbf{Reporting sur données de démonstration} : les indicateurs et
+        graphiques sont générés côté frontend, non encore agrégés depuis une
+        base réelle.
+  \item \textbf{Absence de connexion à un réseau publicitaire réel} : aucune
+        intégration DSP / réseau d'annonces (RTB, OpenRTB) n'est en place ;
+        ce n'était pas l'objet du projet.
+  \item \textbf{Pas de tests automatisés} : la validation reste manuelle et
+        documentée.
+  \item \textbf{URL de magasin non cliquables} : les URL des données de
+        démonstration sont volontairement rendues non cliquables pour éviter
+        d'ouvrir des pages inexistantes.
+\end{itemize}
+
+\section{Perspectives d'évolution}
+
+Le prototype a été conçu pour \textbf{faciliter son évolution}. Les axes
+d'amélioration suivants découlent directement de l'état actuel :
+
+\begin{enumerate}[label=\textbf{\arabic*.}]
+  \item \textbf{Intégration complète de PostgreSQL} : renseigner la connexion,
+        appliquer les migrations SQL existantes et remplacer progressivement
+        les services \emph{mockés} par de vraies requêtes.
+  \item \textbf{Authentification et autorisation réelles} : mots de passe
+        hachés, session ou jeton (JWT), contrôle d'accès vérifié côté API.
+  \item \textbf{Persistance réelle des créatives DCO} et des variantes
+        générées (stockage de fichiers).
+  \item \textbf{Reporting sur données réelles} : agrégation de vraies
+        statistiques depuis la base.
+  \item \textbf{Dockerisation} de l'application (frontend, backend, base) pour
+        un environnement reproductible.
+  \item \textbf{Intégration continue (CI/CD)} : build, tests et déploiement
+        automatisés.
+  \item \textbf{Tests automatisés} : unitaires côté backend et de bout en bout
+        côté frontend.
+  \item \textbf{Déploiement en production} : hébergement du frontend statique
+        et du backend ASGI, avec une stratégie de sauvegarde de la base.
+  \item \textbf{Moteur DCO réel} et \textbf{intégration à un réseau
+        publicitaire / DSP} pour la diffusion effective des campagnes.
+  \item \textbf{Analytique avancée} : attribution des visites en magasin,
+        indicateurs de fréquentation, tableaux de bord enrichis.
+\end{enumerate}
+
+Ces perspectives dessinent une trajectoire réaliste, du \textbf{prototype
+validé} vers une \textbf{version de production}, en tirant parti de
+l'architecture déjà mise en place.

@@ -1,0 +1,81 @@
+%======================= PROBLÉMATIQUE ET OBJECTIFS =========================
+\chapter{Problématique et objectifs}
+
+\section{Problématique}
+
+La conduite d'une campagne \emph{drive-to-store} met en jeu des étapes
+hétérogènes, souvent gérées par des outils distincts : définition de la
+campagne et de son budget, collecte et validation de la base de magasins,
+définition des zones de diffusion autour des points de vente, production de
+créatives personnalisées, puis analyse des performances. Cette dispersion
+soulève plusieurs difficultés :
+
+\begin{itemize}
+  \item \textbf{manque de centralisation} : les données (annonceurs,
+        magasins, campagnes) sont ressaisies ou dupliquées d'un outil à
+        l'autre ;
+  \item \textbf{cohérence des données} : sans validation à l'import, une base
+        de magasins peut contenir des erreurs (coordonnées manquantes, format
+        d'URL invalide, doublons) qui faussent le ciblage ;
+  \item \textbf{personnalisation à l'échelle} : produire une créative par
+        magasin manuellement n'est pas viable dès que le réseau grandit ;
+  \item \textbf{lisibilité du reporting} : les indicateurs doivent être
+        filtrables et exportables pour être réellement exploitables ;
+  \item \textbf{gestion des accès} : différents profils (administration, achat
+        média, lecture seule) ne doivent pas avoir les mêmes droits.
+\end{itemize}
+
+La problématique centrale est donc la suivante :
+\begin{quote}
+\itshape
+Comment concevoir une plateforme web unique qui centralise la création de
+campagnes drive-to-store, le ciblage géographique des magasins, la génération
+de créatives personnalisées et le reporting, tout en offrant une base
+technique propre et évolutive ?
+\end{quote}
+
+\section{Objectifs du projet}
+
+Pour répondre à cette problématique, le projet s'est fixé les objectifs
+suivants :
+
+\subsection{Objectifs fonctionnels}
+\begin{enumerate}[label=\textbf{O\arabic*.}]
+  \item Offrir une \textbf{authentification} et une \textbf{navigation
+        protégée} par rôle (administration, achat média, lecture seule).
+  \item Proposer un \textbf{tableau de bord} synthétisant les indicateurs
+        clés et les campagnes récentes.
+  \item Permettre la \textbf{gestion des campagnes} et leur \textbf{création
+        guidée} via un assistant multi-étapes.
+  \item Prendre en charge l'\textbf{import et la validation} d'une base de
+        magasins (fichiers \texttt{.xlsx} / \texttt{.csv}).
+  \item Assurer le \textbf{ciblage géographique} (\emph{geofencing}) sur une
+        carte interactive.
+  \item Générer des \textbf{créatives dynamiques (DCO)} et des \emph{landing
+        pages} personnalisées par magasin.
+  \item Fournir un \textbf{reporting} filtrable avec indicateurs, graphiques,
+        carte, tableau et export CSV.
+  \item Mettre à disposition un module d'\textbf{administration du compte}
+        (annonceurs, utilisateurs, paramètres).
+\end{enumerate}
+
+\subsection{Objectifs techniques}
+\begin{enumerate}[label=\textbf{T\arabic*.}]
+  \item Construire une \textbf{architecture fullstack claire} (frontend
+        React, backend FastAPI) communiquant via une API REST.
+  \item Documenter l'API de manière \textbf{interactive} (Swagger/OpenAPI).
+  \item Préparer une \textbf{base de données PostgreSQL} (modèles et
+        migrations) sans bloquer le fonctionnement du prototype.
+  \item Adopter un \textbf{flux de versionnement Git/GitHub} rigoureux
+        (branches, \emph{pull requests}).
+  \item Maintenir une \textbf{documentation} technique et fonctionnelle à jour.
+\end{enumerate}
+
+\section{Périmètre et hors-périmètre}
+
+Le projet se concentre sur l'\textbf{expérience de gestion de campagne} et son
+socle technique. Sont explicitement \textbf{hors périmètre} à ce stade : la
+connexion à un réseau publicitaire réel (enchères RTB / OpenRTB), le
+déploiement en production, l'intégration d'un moteur de DCO réel, et la mise en
+place d'une authentification de niveau production. Ces éléments sont abordés
+dans le chapitre \og Limites et perspectives \fg{}.

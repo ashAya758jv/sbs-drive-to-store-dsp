@@ -1,0 +1,66 @@
+%============================ TESTS ET VALIDATION ===========================
+\chapter{Tests et validation}
+
+\section{Stratégie de validation}
+
+La validation du prototype a été réalisée de manière \textbf{manuelle et
+systématique}, module par module, puis de bout en bout. En l'absence de tests
+automatisés à ce stade (voir limites), l'accent a été mis sur des vérifications
+reproductibles : build, contrôle de santé de l'API, exécution des endpoints via
+Swagger, et parcours utilisateur complet dans le navigateur.
+
+\section{Vérifications réalisées}
+
+Le tableau~\ref{tab:tests} récapitule les principales vérifications et leur
+résultat.
+
+\begin{table}[H]
+\centering
+\caption{Synthèse des tests et validations}
+\label{tab:tests}
+\small
+\begin{tabularx}{\textwidth}{@{}p{5.2cm}L p{2cm}@{}}
+\toprule
+\textbf{Vérification} & \textbf{Détail} & \textbf{Résultat} \\
+\midrule
+Build du frontend & \texttt{npm run build} sans erreur & Validé \\
+Analyse statique & \texttt{npm run lint} sans avertissement & Validé \\
+Santé du backend & \texttt{GET /api/health} renvoie le statut \texttt{ok} & Validé \\
+API Swagger & Endpoints listés et exécutables depuis \texttt{/docs} & Validé \\
+Navigation & Menu adapté au rôle, fil d'Ariane correct & Validé \\
+Connexion / déconnexion & Ouverture et fermeture de session & Validé \\
+Routes protégées & Redirection si non authentifié ou rôle non autorisé & Validé \\
+Création de campagne & Parcours complet et enregistrement du brouillon & Validé \\
+Import des magasins & Validation des lignes et détection d'erreurs & Validé \\
+Carte de geofencing & Marqueurs et rayons affichés correctement & Validé \\
+Génération DCO & Variantes par magasin et \emph{landing pages} simulées & Validé \\
+Filtres de reporting & Indicateurs et graphiques recalculés & Validé \\
+Export CSV & Fichier lisible dans Excel (accents, colonnes) & Validé \\
+Paramètres du compte & Mise à jour via \texttt{PATCH /api/account-settings} & Validé \\
+Validation fonctionnelle finale & Parcours de bout en bout cohérent & Validé \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Contrôle de non-régression}
+
+À chaque nouvelle étape, les modules précédemment validés ont été parcourus
+de nouveau afin de détecter d'éventuelles régressions. Cette vigilance a
+notamment permis de corriger, lors de l'intégration de bout en bout, des
+détails de navigation (par exemple des liens externes de démonstration rendus
+volontairement non cliquables pour éviter d'ouvrir des pages inexistantes).
+
+\section{Cas d'erreur couverts}
+
+Au-delà des cas nominaux, plusieurs cas d'erreur ont été vérifiés côté API :
+identifiant inconnu (404), e-mail déjà utilisé lors de la création d'un
+utilisateur (409), champ invalide ou manquant (422), fichier d'import au
+format non supporté ou illisible (400). Ces réponses sont explicites et
+exploitées par l'interface pour afficher des messages clairs.
+
+\section{Limite de la démarche}
+
+La validation reste \textbf{manuelle} : elle ne remplace pas une suite de
+\textbf{tests automatisés} (unitaires et de bout en bout), dont la mise en
+place figure parmi les perspectives du projet. La procédure de validation est
+toutefois documentée et reproductible (voir le chapitre suivant).

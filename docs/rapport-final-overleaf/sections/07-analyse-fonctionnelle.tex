@@ -1,0 +1,88 @@
+%========================== ANALYSE FONCTIONNELLE ===========================
+\chapter{Analyse fonctionnelle}
+
+\section{Acteurs et rôles}
+
+La plateforme distingue trois \textbf{rôles} d'utilisateurs, qui conditionnent
+l'accès aux modules et aux actions. Ces rôles sont définis côté application et
+appliqués à la fois sur la navigation (menu adapté) et sur les actions
+disponibles.
+
+\begin{table}[H]
+\centering
+\caption{Rôles et périmètres d'accès}
+\label{tab:roles}
+\begin{tabularx}{\textwidth}{@{}p{3cm}L@{}}
+\toprule
+\textbf{Rôle} & \textbf{Périmètre} \\
+\midrule
+\textbf{Admin} & Accès à tous les modules ; seul rôle autorisé à \emph{modifier} la gestion du compte (annonceurs, utilisateurs, paramètres). \\
+\textbf{Media buyer} & Accès aux campagnes, magasins, DCO, reporting et dashboard ; accès en lecture seule à la gestion du compte. \\
+\textbf{Lecteur} & Accès en consultation : dashboard, magasins, reporting et gestion du compte (lecture seule) ; pas d'accès aux campagnes ni au DCO. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Parcours utilisateurs principaux}
+
+Les principaux parcours couverts par la plateforme sont les suivants :
+
+\begin{description}[leftmargin=1.4cm,style=nextline]
+  \item[a) Connexion] L'utilisateur saisit ses identifiants et choisit un
+        rôle ; la navigation s'adapte alors à ce rôle. L'authentification est
+        \emph{simulée} à ce stade (voir limites).
+  \item[b) Consultation du tableau de bord] Vue de synthèse : indicateurs
+        clés, courbe de performance, campagnes récentes.
+  \item[c) Création de campagne] Assistant en cinq étapes (informations
+        générales, ciblage technique, formats, magasins ciblés, catégories),
+        avec enregistrement possible en brouillon.
+  \item[d) Import des magasins et geofencing] Import d'un fichier de magasins,
+        validation ligne par ligne, sélection des magasins et réglage du rayon
+        de diffusion sur une carte.
+  \item[e) Génération DCO] Upload d'un visuel, génération automatique d'une
+        variante par magasin, comparaison, galerie et \emph{landing pages}
+        simulées.
+  \item[f) Reporting] Consultation d'indicateurs et de graphiques filtrables,
+        d'une carte des zones de diffusion, d'un tableau par magasin et export
+        CSV.
+  \item[g) Gestion du compte] Administration des annonceurs, des utilisateurs
+        et des paramètres globaux du compte.
+\end{description}
+
+\section{Tableau des cas d'utilisation}
+
+Le tableau~\ref{tab:usecases} récapitule les principaux cas d'utilisation, avec
+l'acteur concerné et le résultat attendu.
+
+\begin{table}[H]
+\centering
+\caption{Cas d'utilisation principaux}
+\label{tab:usecases}
+\small
+\begin{tabularx}{\textwidth}{@{}p{1.1cm}p{3.4cm}p{2.5cm}L@{}}
+\toprule
+\textbf{Réf.} & \textbf{Cas d'utilisation} & \textbf{Acteur} & \textbf{Résultat attendu} \\
+\midrule
+UC1 & Se connecter / se déconnecter & Tous & Session ouverte selon le rôle ; accès protégé aux pages. \\
+UC2 & Consulter le tableau de bord & Tous & Affichage des indicateurs, du graphique et des campagnes récentes. \\
+UC3 & Lister les campagnes & Admin, Media buyer & Liste des campagnes et des brouillons. \\
+UC4 & Créer une campagne (brouillon) & Admin, Media buyer & Brouillon enregistré et visible dans la liste. \\
+UC5 & Importer et valider les magasins & Admin, Media buyer & Lignes valides et erreurs détaillées ; magasins sélectionnables. \\
+UC6 & Régler le geofencing & Admin, Media buyer & Rayon de diffusion par magasin visualisé sur la carte. \\
+UC7 & Générer des variantes DCO & Admin, Media buyer & Variantes par magasin et \emph{landing pages} simulées. \\
+UC8 & Analyser le reporting & Tous & Indicateurs, graphiques, carte et tableau filtrés ; export CSV. \\
+UC9 & Gérer les annonceurs & Admin (édition) & Consultation et modification des fiches annonceurs. \\
+UC10 & Gérer les utilisateurs & Admin (édition) & Ajout, modification, activation/désactivation. \\
+UC11 & Configurer les paramètres & Admin (édition) & Enregistrement des paramètres globaux du compte. \\
+UC12 & Consulter l'API (Swagger) & Technique & Endpoints documentés et testables. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Exigences non fonctionnelles}
+
+Au-delà des fonctionnalités, plusieurs exigences ont guidé la conception :
+\textbf{cohérence de l'interface} (composants réutilisables, charte visuelle
+homogène), \textbf{robustesse} (gestion des cas d'erreur et des états de
+chargement), \textbf{lisibilité du code} (séparation claire des
+responsabilités) et \textbf{documentation} (API et parcours documentés).

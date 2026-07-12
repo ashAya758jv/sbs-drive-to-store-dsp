@@ -1,0 +1,333 @@
+%======================= RÉALISATION PAR MODULE =============================
+\chapter{Réalisation technique par module}
+
+Ce chapitre présente, module par module, l'objectif poursuivi, les
+fonctionnalités implémentées, les principaux choix techniques, une capture
+d'écran illustrative et, le cas échéant, les limites à ce stade.
+
+%---------------------------------------------------------------------------
+\section{Module A --- Connexion et navigation}
+
+\subsection*{Objectif}
+Offrir un point d'entrée sécurisé (dans l'esprit) à l'application et adapter la
+navigation au rôle de l'utilisateur.
+
+\subsection*{Fonctionnalités}
+\begin{itemize}
+  \item écran de connexion avec e-mail, mot de passe et \textbf{choix du
+        rôle} (Admin, Media buyer, Lecteur) ;
+  \item \textbf{navigation latérale} filtrée selon le rôle ;
+  \item \textbf{protection des routes} : redirection vers la connexion si
+        aucune session, ou vers le tableau de bord si le rôle n'est pas
+        autorisé.
+\end{itemize}
+
+\subsection*{Explication technique}
+La session est gérée par un contexte d'authentification et persistée dans le
+\texttt{localStorage} du navigateur. Deux gardes de route encadrent l'accès aux
+pages. Il s'agit d'une \textbf{authentification simulée} : aucun mot de passe
+n'est vérifié et le contrôle d'accès n'est appliqué que côté frontend
+(voir limites).
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{login.png}
+\caption{Interface de connexion}
+\label{fig:login}
+\end{figure}
+
+%---------------------------------------------------------------------------
+\section{Module B --- Tableau de bord}
+
+\subsection*{Objectif}
+Donner une vue de synthèse immédiate de l'activité publicitaire.
+
+\subsection*{Fonctionnalités}
+\begin{itemize}
+  \item quatre \textbf{indicateurs clés} (impressions, clics, budget dépensé,
+        campagnes actives) ;
+  \item \textbf{graphique de performance} ;
+  \item \textbf{tableau des campagnes récentes}.
+\end{itemize}
+
+\subsection*{Explication technique}
+Les données proviennent d'un endpoint dédié (\texttt{GET
+/api/statistics/dashboard}) qui agrège des données \emph{mockées}, prêtes à
+être remplacées par de vraies statistiques une fois la base branchée. Les
+graphiques utilisent la bibliothèque Recharts.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{dashboard.png}
+\caption{Tableau de bord principal}
+\label{fig:dashboard}
+\end{figure}
+
+%---------------------------------------------------------------------------
+\section{Module C --- Gestion des campagnes}
+
+\subsection*{Objectif}
+Lister les campagnes existantes et les brouillons en cours.
+
+\subsection*{Fonctionnalités}
+\begin{itemize}
+  \item section \textbf{\og Vos brouillons \fg{}} alimentée par l'API ;
+  \item section \textbf{\og Toutes les campagnes \fg{}} présentant des
+        campagnes de démonstration (active, en pause, brouillon, terminée) ;
+  \item accès direct à l'assistant de création.
+\end{itemize}
+
+\subsection*{Explication technique et limite}
+La liste des brouillons est \textbf{réellement branchée} au backend
+(\texttt{GET /api/campaigns/drafts}). En revanche, la table \og Toutes les
+campagnes \fg{} affiche encore des données \emph{mockées} côté frontend : ce
+point est signalé en toute transparence et figure parmi les évolutions
+possibles.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{campagnes.png}
+\caption{Liste des campagnes et des brouillons}
+\label{fig:campagnes}
+\end{figure}
+
+%---------------------------------------------------------------------------
+\section{Module D --- Assistant de création de campagne}
+
+\subsection*{Objectif}
+Guider l'utilisateur dans la création d'une campagne à travers un parcours
+structuré.
+
+\subsection*{Fonctionnalités}
+Assistant en \textbf{cinq étapes} : (1) informations générales (nom,
+annonceur, objectif, dates, budgets), (2) ciblage technique (appareils,
+systèmes d'exploitation, plages horaires), (3) formats publicitaires, (4)
+magasins ciblés (voir modules E et F), (5) catégories d'applications et
+résumé. À toute étape, l'utilisateur peut \textbf{enregistrer un brouillon},
+même incomplet.
+
+\subsection*{Explication technique}
+L'assistant s'appuie sur un catalogue d'options servi par l'API
+(\texttt{GET /api/campaign-creation/options}), garantissant un vocabulaire
+partagé entre frontend et backend. L'enregistrement d'un brouillon
+(\texttt{POST /api/campaigns/drafts}) constitue la \textbf{seule donnée
+réellement persistée} du prototype ; en cas d'API injoignable, un repli local
+(navigateur) évite de bloquer le parcours.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{creation-campagne.png}
+\caption{Assistant de création de campagne}
+\label{fig:creation}
+\end{figure}
+
+%---------------------------------------------------------------------------
+\section{Module E --- Import des magasins et validation CSV}
+
+\subsection*{Objectif}
+Permettre à l'annonceur d'importer sa base de magasins et en garantir la
+qualité avant utilisation.
+
+\subsection*{Fonctionnalités}
+\begin{itemize}
+  \item import d'un fichier \texttt{.xlsx} ou \texttt{.csv} ;
+  \item \textbf{validation ligne par ligne} : colonnes obligatoires,
+        coordonnées GPS, format d'URL, détection des doublons ;
+  \item affichage du nombre de lignes valides et des erreurs détaillées ;
+  \item sélection des magasins à cibler.
+\end{itemize}
+
+\subsection*{Explication technique}
+La validation est réalisée \textbf{côté serveur}
+(\texttt{POST /api/stores/import/preview}) : le fichier est analysé (CSV avec
+séparateur \texttt{,} ou \texttt{;}, ou Excel), chaque ligne est contrôlée, et
+une erreur explicite est produite par cellule invalide, avec son numéro de
+ligne. Aucune donnée n'est persistée à l'étape d'aperçu.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{magasins.png}
+\caption{Import et validation de la base de magasins}
+\label{fig:magasins}
+\end{figure}
+
+%---------------------------------------------------------------------------
+\section{Module F --- Géociblage / geofencing}
+
+\subsection*{Objectif}
+Définir et visualiser les zones de diffusion autour des magasins sélectionnés.
+
+\subsection*{Fonctionnalités}
+\begin{itemize}
+  \item carte interactive avec un \textbf{marqueur par magasin} ;
+  \item réglage du \textbf{rayon de diffusion} (1 à 20 km, 5 km par défaut) ;
+  \item visualisation du rayon par un \textbf{cercle} sur la carte.
+\end{itemize}
+
+\subsection*{Explication technique}
+La cartographie repose sur \textbf{Leaflet} et les fonds de carte
+\textbf{OpenStreetMap} (aucune clé propriétaire requise). Le composant de carte
+est \textbf{partagé} entre la page \og Magasins \fg{} et l'étape 4 de
+l'assistant, garantissant un comportement identique aux deux endroits.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{map-geofencing.png}
+\caption{Carte de géociblage (geofencing)}
+\label{fig:geofencing}
+\end{figure}
+
+%---------------------------------------------------------------------------
+\section{Module G --- DCO et landing pages simulées}
+
+\subsection*{Objectif}
+Générer automatiquement des créatives et des pages d'atterrissage
+personnalisées par magasin.
+
+\subsection*{Fonctionnalités}
+\begin{itemize}
+  \item upload d'un visuel par format (bannière, pavé, interstitiel) ;
+  \item \textbf{génération d'une variante par magasin} intégrant les champs
+        dynamiques (nom, ville, adresse, horaires) ;
+  \item comparaison de deux magasins et galerie complète des variantes ;
+  \item \textbf{\emph{landing pages} simulées} prévisualisables par magasin.
+\end{itemize}
+
+\subsection*{Explication technique et limites}
+Seules les \textbf{métadonnées} du visuel sont envoyées et enregistrées côté
+serveur (\texttt{POST /api/dco/creatives}) : aucun fichier n'est stocké sur
+disque. La génération des variantes et des \emph{landing pages} est calculée
+\textbf{côté frontend}. Les \emph{landing pages} sont \textbf{entièrement
+simulées} (pas de route publique réelle). Enfin, les URL de magasin issues des
+données de démonstration sont \textbf{volontairement non cliquables} (texte
+informatif), car elles ne pointent pas vers de vraies pages en ligne.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{dco.png}
+\caption{Module DCO --- génération de variantes}
+\label{fig:dco}
+\end{figure}
+
+%---------------------------------------------------------------------------
+\section{Module H --- Reporting et export CSV}
+
+\subsection*{Objectif}
+Analyser la performance des campagnes selon différents filtres et exporter les
+résultats.
+
+\subsection*{Fonctionnalités}
+\begin{itemize}
+  \item filtres (période, campagne, ville/magasin) ;
+  \item \textbf{indicateurs} et \textbf{graphiques} qui se recalculent selon
+        les filtres ;
+  \item \textbf{carte des zones de diffusion} et \textbf{tableau par magasin}
+        triable ;
+  \item \textbf{export CSV} compatible Excel.
+\end{itemize}
+
+\subsection*{Explication technique et limite}
+La liste des magasins et des villes provient de l'endpoint réel
+(\texttt{GET /api/stores}). En revanche, les indicateurs de performance sont
+\textbf{générés côté frontend} (données de démonstration réalistes), et non
+encore agrégés depuis une base. L'export CSV inclut un \textbf{BOM UTF-8} et un
+séparateur point-virgule ({\NoAutoSpacing\texttt{;}}), afin de garantir un
+affichage correct des accents et des colonnes dans Excel.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{reporting.png}
+\caption{Reporting des performances}
+\label{fig:reporting}
+\end{figure}
+
+%---------------------------------------------------------------------------
+\section{Module I --- Gestion du compte}
+
+\subsection*{Objectif}
+Administrer les annonceurs, les utilisateurs et les paramètres du compte.
+
+\subsection*{Fonctionnalités}
+\begin{itemize}
+  \item onglet \textbf{Annonceurs} : recherche, filtre, fiche détaillée,
+        modification ;
+  \item onglet \textbf{Utilisateurs} : recherche, filtre par rôle, ajout,
+        modification, activation/désactivation ;
+  \item onglet \textbf{Paramètres} : devise, fuseau horaire, langue, e-mail de
+        notification, activation du suivi.
+\end{itemize}
+
+\subsection*{Explication technique}
+Le module est \textbf{entièrement branché sur l'API}
+(\texttt{/api/advertisers}, \texttt{/api/users}, \texttt{/api/account-settings}),
+avec des erreurs HTTP explicites (404 pour un identifiant inconnu, 409 pour un
+e-mail déjà utilisé, 422 pour un champ invalide). L'\textbf{édition} est
+réservée au rôle Admin ; les autres rôles accèdent en lecture seule.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{gestion-compte.png}
+\caption{Gestion du compte (annonceurs, utilisateurs, paramètres)}
+\label{fig:compte}
+\end{figure}
+
+%---------------------------------------------------------------------------
+\section{Module J --- Backend FastAPI et Swagger}
+
+\subsection*{Objectif}
+Exposer une API REST claire, validée et documentée.
+
+\subsection*{Fonctionnalités}
+\begin{itemize}
+  \item \textbf{24 endpoints} REST regroupés par ressource ;
+  \item validation des données par Pydantic et erreurs HTTP explicites ;
+  \item documentation \textbf{Swagger/OpenAPI} interactive et testable.
+\end{itemize}
+
+\subsection*{Explication technique}
+FastAPI génère automatiquement la documentation OpenAPI, accessible à
+l'adresse \texttt{/docs}. Chaque endpoint y est décrit et peut être exécuté
+directement depuis l'interface. La figure~\ref{fig:swagger} présente la vue
+d'ensemble de l'API, et la figure~\ref{fig:swaggerhealth} illustre le test de
+l'endpoint de santé.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{swagger-api.png}
+\caption{Documentation Swagger de l'API}
+\label{fig:swagger}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{swagger-health-test.png}
+\caption{Test de l'endpoint \texttt{/api/health} depuis Swagger}
+\label{fig:swaggerhealth}
+\end{figure}
+
+%---------------------------------------------------------------------------
+\section{Module K --- GitHub et documentation}
+
+\subsection*{Objectif}
+Assurer un versionnement rigoureux et une documentation exploitable du projet.
+
+\subsection*{Fonctionnalités}
+\begin{itemize}
+  \item dépôt GitHub structuré (\texttt{frontend/}, \texttt{backend/},
+        \texttt{database/}, \texttt{docs/}) ;
+  \item flux par \textbf{branches} et \textbf{\emph{pull requests}} ;
+  \item documentation continue (technique, schéma de données, scénario et
+        checklist de démonstration, journal d'avancement, livraison finale).
+\end{itemize}
+
+\subsection*{Explication technique}
+Chaque incrément a été développé sur une branche dédiée puis intégré par
+\emph{pull request}, ce qui conserve un historique lisible et réversible. La
+figure~\ref{fig:github} présente le dépôt du projet.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{github-repository.png}
+\caption{Dépôt GitHub du projet}
+\label{fig:github}
+\end{figure}

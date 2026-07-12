@@ -1,0 +1,140 @@
+%================================ ANNEXES ===================================
+% Chapitre numéroté en mode annexe (\appendix dans le fichier principal) :
+% l'entrée « A Annexes » est ajoutée automatiquement à la table des matières,
+% aucun \addcontentsline manuel n'est donc nécessaire (il créerait un doublon).
+\chapter{Annexes}
+
+\section{Commandes pour lancer le projet}
+
+\subsection*{Backend (FastAPI)}
+\begin{lstlisting}[language=bash]
+cd backend
+python -m venv .venv
+# Windows PowerShell :
+.\.venv\Scripts\Activate.ps1
+# macOS / Linux :
+# source .venv/bin/activate
+pip install -r requirements.txt
+uvicorn app.main:app --reload
+# API      : http://127.0.0.1:8000
+# Swagger  : http://127.0.0.1:8000/docs
+# Santé    : curl http://127.0.0.1:8000/api/health
+\end{lstlisting}
+
+\subsection*{Frontend (React / Vite)}
+\begin{lstlisting}[language=bash]
+cd frontend
+npm install
+npm run dev
+# Application : http://localhost:5173
+npm run build   # build de production (dossier dist/)
+npm run lint    # analyse statique ESLint
+\end{lstlisting}
+
+\section{Récapitulatif des endpoints de l'API}
+
+L'API expose 24~endpoints sous le préfixe \texttt{/api} (auxquels s'ajoute un
+point d'accueil \texttt{/} hors préfixe). Le tableau~\ref{tab:endpoints} en
+présente la liste complète.
+
+\begingroup\small
+\begin{longtable}{@{}p{1.8cm}p{8.2cm}p{3.4cm}@{}}
+\caption{Liste des endpoints de l'API backend}
+\label{tab:endpoints}\\
+\toprule
+\textbf{Méthode} & \textbf{URL} & \textbf{Ressource} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Méthode} & \textbf{URL} & \textbf{Ressource} \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+GET & \path{/api/health} & Santé \\
+GET & \path{/api/statistics/dashboard} & Tableau de bord \\
+GET & \path{/api/campaigns} & Campagnes \\
+POST & \path{/api/campaigns/drafts} & Brouillons \\
+GET & \path{/api/campaigns/drafts} & Brouillons \\
+GET & \path{/api/campaigns/drafts/{draft_id}} & Brouillons \\
+GET & \path{/api/campaign-creation/options} & Options de l'assistant \\
+GET & \path{/api/stores} & Magasins \\
+POST & \path{/api/stores/import/preview} & Import de magasins \\
+POST & \path{/api/dco/creatives} & DCO \\
+GET & \path{/api/dco/creatives} & DCO \\
+GET & \path{/api/advertisers} & Annonceurs \\
+GET & \path{/api/advertisers/{advertiser_id}} & Annonceurs \\
+PATCH & \path{/api/advertisers/{advertiser_id}} & Annonceurs \\
+GET & \path{/api/advertisers/{advertiser_id}/settings} & Paramètres annonceur \\
+PATCH & \path{/api/advertisers/{advertiser_id}/settings} & Paramètres annonceur \\
+GET & \path{/api/account-settings} & Paramètres globaux \\
+PUT & \path{/api/account-settings} & Paramètres globaux \\
+PATCH & \path{/api/account-settings} & Paramètres globaux \\
+GET & \path{/api/users} & Utilisateurs \\
+POST & \path{/api/users} & Utilisateurs \\
+GET & \path{/api/users/{user_id}} & Utilisateurs \\
+PATCH & \path{/api/users/{user_id}} & Utilisateurs \\
+PATCH & \path{/api/users/{user_id}/status} & Utilisateurs \\
+\end{longtable}
+\endgroup
+
+\section{Checklist de démonstration (extrait)}
+
+\textbf{Avant la démonstration :}
+\begin{itemize}
+  \item redémarrer le backend pour repartir sur des données propres ;
+  \item vérifier \texttt{GET /api/health} ;
+  \item lancer le frontend et ouvrir l'application dans un onglet rafraîchi
+        (Ctrl+F5) ou en navigation privée ;
+  \item ouvrir Swagger dans un second onglet ;
+  \item préparer le fichier d'exemple \path{docs/samples/stores-valid.csv}.
+\end{itemize}
+
+\textbf{Incidents courants et solutions :}
+\begin{itemize}
+  \item \textbf{backend non lancé} : relancer
+        {\NoAutoSpacing\texttt{uvicorn app.main:app --reload}} ;
+  \item \textbf{port occupé} : identifier et arrêter le processus concerné,
+        puis relancer le serveur ;
+  \item \textbf{page blanche ou cache obsolète} : recharger en forçant le
+        cache (Ctrl+F5) ou vider \path{node_modules/.vite} avant de relancer ;
+  \item \textbf{export CSV mal affiché} : ouvrir le fichier via l'import de
+        données d'Excel si le double-clic pose problème ;
+  \item \textbf{erreur API} : reproduire l'appel dans Swagger pour lire le
+        message d'erreur exact.
+\end{itemize}
+
+Le détail complet figure dans le fichier
+\path{docs/checklist-demonstration-finale.md} du dépôt.
+
+\section{Flux de travail Git}
+
+\begin{lstlisting}[language=bash]
+# Créer une branche par sujet
+git checkout -b feat/mon-module
+
+# Valider les changements (commit)
+git add .
+git commit -m "feat: description du module"
+
+# Pousser la branche et ouvrir une pull request sur GitHub
+git push -u origin feat/mon-module
+# -> ouverture d'une pull request, revue, puis fusion (merge)
+\end{lstlisting}
+
+\section{Liste des captures d'écran}
+
+\begin{enumerate}
+  \item Interface de connexion (figure~\ref{fig:login})
+  \item Tableau de bord principal (figure~\ref{fig:dashboard})
+  \item Liste des campagnes (figure~\ref{fig:campagnes})
+  \item Assistant de création de campagne (figure~\ref{fig:creation})
+  \item Import des magasins (figure~\ref{fig:magasins})
+  \item Carte de géociblage (figure~\ref{fig:geofencing})
+  \item Module DCO (figure~\ref{fig:dco})
+  \item Reporting des performances (figure~\ref{fig:reporting})
+  \item Gestion du compte (figure~\ref{fig:compte})
+  \item Documentation Swagger de l'API (figure~\ref{fig:swagger})
+  \item Test de l'endpoint \texttt{/api/health} (figure~\ref{fig:swaggerhealth})
+  \item Dépôt GitHub (figure~\ref{fig:github})
+\end{enumerate}
